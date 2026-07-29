@@ -12,8 +12,17 @@ import cv2
 import numpy as np
 import math
 
+BASE_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
 
-def find_marker_in_roi(roi, offset_x=0, offset_y=0, win_name="ROI DEBUG"):
+RESULT_FOLDER = os.path.join(
+    BASE_DIR,
+    "results"
+)
+
+
+def find_marker_in_roi(roi, offset_x=0, offset_y=0, win_name="ROI DEBUG", debug_mode = False):
 
     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 
@@ -99,19 +108,10 @@ def find_marker_in_roi(roi, offset_x=0, offset_y=0, win_name="ROI DEBUG"):
         cv2.circle(debug, (px,py), 5, (0,0,255), -1)
 
     
-    cv2.imshow(win_name, debug)
+    if debug_mode:
+        cv2.imshow( win_name, debug)
 
     return selected
-
-def mouse(event, x, y, flags, param):
-
-    if event == cv2.EVENT_LBUTTONDOWN:
-        # print(x, y)
-
-        points.append((x, y))
-
-        cv2.circle(img, (x, y), 5, (0, 0, 255), -1)
-        # cv2.imshow("warp", img)
 
 def cat_roi(roi, cols):
     # roi = (xr, yr, wr, hr)
@@ -319,7 +319,7 @@ def read_part1(part1_roi, rows, cols, answer_key_1, img=None, offset_x=0, offset
         aspect_ratio = w / float(h) if h != 0 else 0
         extent = area / float(w*h)
 
-        cv2.putText(part1_roi,f"{int(circularity)}",(x, y-3),cv2.FONT_HERSHEY_SIMPLEX,0.4,(0,0,255),1)
+        # cv2.putText(part1_roi,f"{int(circularity)}",(x, y-3),cv2.FONT_HERSHEY_SIMPLEX,0.4,(0,0,255),1)
 
         if  100 <= area < 400 and 0.9 < aspect_ratio < 1.65 and peri > 60 and circularity > 0.35: 
             cx = x + w//2
@@ -593,11 +593,17 @@ def build_part2_grid(block_img , answer_key_2, cols=2, start_question = 1):
         row_answer = []
         temp_data = []
 
+        if r >= len(choices):
+            continue
+
         question = start_question
 
         choice = choices[r]
 
         for c in range(cols):
+
+            if c >= len(cols_x):
+                continue
 
             cx = cols_x[c]
 
@@ -768,6 +774,9 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
 
         for c, cx in enumerate(cols_x):
 
+            if c >= len(digits):
+                continue
+
             radius = int(avg_w * 0.45)
 
             mask = np.zeros(thresh.shape,dtype=np.uint8)
@@ -825,6 +834,13 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
     # ==========================
 
     correct_answer = answer_key_3.get(str(question_no))
+
+    if isinstance(correct_answer, dict):
+        correct_answer = correct_answer.get("answer")
+    else:
+        correct_answer = correct_answer
+
+    print("đáp án trong hàm :", correct_answer)
     if correct_answer is None:
         print(f"Không có đáp án câu {question_no}")
         is_correct = False
@@ -839,7 +855,17 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
 
         # dấu âm
         if temp.startswith("-"):
-            correct_points.append((cols_x[0],rows_y[0],radius))
+            if ( len(cols_x) > 0 and len(rows_y) > 0):
+                correct_points.append((cols_x[0],rows_y[0],radius))
+            else:
+                print("Không thể đánh dấu dấu âm:",
+                    {
+                        "correct_answer":
+                            correct_answer,
+                        "cols_x": cols_x,
+                        "rows_y": rows_y,
+                    }
+                )  
             temp = temp[1:]
 
         # dấu phẩy
@@ -848,8 +874,19 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
         if "," in temp:
             comma_index = temp.index(",")
             temp = temp.replace(",","")
-            correct_points.append((cols_x[comma_index], rows_y[1], radius))
+            if (comma_index < len(cols_x)  and len(rows_y) > 1 ):
+                correct_points.append((cols_x[comma_index], rows_y[1], radius))
 
+        else:
+            print(
+                "Không thể đánh dấu dấu phẩy:",
+                {
+                    "correct_answer": correct_answer,
+                    "comma_index": comma_index,
+                    "cols_x": cols_x,
+                    "rows_y": rows_y,
+                }
+            )
 
         # các chữ số
         for c,digit in enumerate(temp):
@@ -882,13 +919,21 @@ def crop_relative(img, roi):
 
 # img_original  = cv2.imread(r'C:\Users\Admin\Downloads\Project_1\backend\data\data3 7-2-2026\IMG_7876.png')
 
-folder = r"C:\Users\Admin\Downloads\Project_1\backend\data\data3 7-2-2026"
-image_files = []
-image_files.extend(glob.glob(os.path.join(folder, "*.png")))
-for file_path in image_files:
-    img_original = cv2.imread(file_path)
-    file_name = os.path.basename(file_path)
-    print("anh ", file_name)
+# folder = r"C:\Users\Admin\Downloads\Project_1\backend\data\data3 7-2-2026"
+# image_files = []
+# image_files.extend(glob.glob(os.path.join(folder, "*.png")))
+# for file_path in image_files:
+#     img_original = cv2.imread(file_path)
+#     file_name = os.path.basename(file_path)
+#     print("anh ", file_name)
+
+def detect(image_path, answer_keys, debug_mode=False):
+    global warp
+
+    img_original = cv2.imread(image_path)
+
+    if img_original is None:
+        raise ValueError( f"Không đọc được ảnh: {image_path}")
 
     img = img_original.copy()   # xử lý
     img_debug   = img_original.copy()   # vẽ debug
@@ -968,13 +1013,13 @@ for file_path in image_files:
     # PHÂN LUỒNG LOGIC: 4 ĐIỂM vs 3 ĐIỂM
     # ==========================================
 
-    TL = find_marker_in_roi( roi_tl, margin, margin, "ROI TL DEBUG")
+    TL = find_marker_in_roi( roi_tl, margin, margin, "ROI TL DEBUG", debug_mode)
 
-    TR = find_marker_in_roi( roi_tr, W - roi_w - margin, margin, "ROI TR DEBUG")
+    TR = find_marker_in_roi( roi_tr, W - roi_w - margin, margin, "ROI TR DEBUG", debug_mode)
 
-    BL = find_marker_in_roi( roi_bl, margin,H -  roi_h - margin, "ROI BL DEBUG")
+    BL = find_marker_in_roi( roi_bl, margin,H -  roi_h - margin, "ROI BL DEBUG", debug_mode)
 
-    BR = find_marker_in_roi( roi_br, W - roi_w - margin, H - roi_h - margin, "ROI BR DEBUG")
+    BR = find_marker_in_roi( roi_br, W - roi_w - margin, H - roi_h - margin, "ROI BR DEBUG", debug_mode)
 
     # print("TL =", TL)
     # print("TR =", TR)
@@ -1058,22 +1103,51 @@ for file_path in image_files:
     # print('SÔ BÁO DANH : ', sbd)
     # print('MÃ ĐỀ : ',md)
 
-    with open("answers.json", "r", encoding="utf-8") as f:
-        exams = json.load(f)
+    # with open("answers.json", "r", encoding="utf-8") as f:
+    #     exams = json.load(f)
 
-    answer_key = exams.get(md)
+    # answer_key = exams.get(md)
 
-    if answer_key is None:
-        print("Không tìm thấy mã đề:", md)
-        exit()
+    # if answer_key is None:
+    #     print("Không tìm thấy mã đề:", md)
 
-    # print("DAP AN")
-    # print(exams)
+    # # print("DAP AN")
+    # # print(exams)
+    # if answer_key is None:
+    #     raise ValueError(
+    #         f"Không tìm thấy mã đề: {md}"
+    #     )
 
-    md_answer_key =  exams[md]
-    answer_key_part1 = md_answer_key['mcq']
-    answer_key_2 = md_answer_key['tf']
-    answer_key_3 = md_answer_key['essay']
+    # md_answer_key =  exams[md]
+    # answer_key_part1 = md_answer_key['mcq']
+    # answer_key_2 = md_answer_key['tf']
+    # answer_key_3 = md_answer_key['essay']
+
+    md = str(md)
+
+    # Lấy đáp án được frontend gửi lên
+    md_answer_key = answer_keys.get(md)
+
+    if md_answer_key is None:
+        raise ValueError(
+            f"Không có đáp án mã đề {md} "
+            f"trong dữ liệu từ web"
+        )
+
+    answer_key_part1 = (md_answer_key.get("mcq",{}))
+
+    # Phần 2: Đúng/Sai
+    answer_key_2 = (
+        md_answer_key.get("trueFalse",md_answer_key.get("tf",{})))
+
+    # Phần 3: Trả lời ngắn
+    answer_key_3 = ( md_answer_key.get("shortAnswer",md_answer_key.get("essay",{})))
+
+    print("Đáp án phần 3 :", answer_key_3)
+
+    correct_part1 = 0
+    correct_part2 = 0
+    correct_part3 = 0
     # print(answer_key_part1)
 
     # ==========================================
@@ -1102,7 +1176,7 @@ for file_path in image_files:
 
         rows = 4 if i == 4 else 5
 
-        answers, debug, selected_points_part1 = read_part1(part_roi, rows , 4,answer_key_part1,start_question=(i*5)+1)
+        answers, debug_part1, selected_points_part1 = read_part1(part_roi, rows , 4,answer_key_part1,start_question=(i*5)+1)
 
         all_answers1.update(answers)
 
@@ -1116,7 +1190,12 @@ for file_path in image_files:
         # cv2.rectangle(warp, (x, y), (x+w, y+h), (0,255,0), 2)
 
         for item in selected_points_part1:
-            (row,student_answer,cx,cy,radius,is_correct,correct_cx,correct_cy) = item
+            (row, student_answer, cx, cy, radius, is_correct, correct_cx, correct_cy) = item
+
+            if is_correct:
+                correct_part1 += 1
+
+            question_no = (i * 5) + row + 1
 
             question_no = (i*5) + row + 1
 
@@ -1182,6 +1261,10 @@ for file_path in image_files:
         # Vẽ đáp án học sinh chọn
         for item in selected_points_part2:
             row, col, cx, cy, radius, is_correct = item
+
+            if is_correct:
+                correct_part2 += 1
+
             wx = x + cx
             wy = y + cy
             color = (0,255,255) if is_correct else (0,0,255)
@@ -1196,7 +1279,8 @@ for file_path in image_files:
 
             cv2.circle(warp,(wx,wy),radius+2,(0,255,0),4)
 
-        cv2.imshow(f"PART2_{i+1}",debug_part2)
+        if debug_mode:
+            cv2.imshow(f"PART2_{i+1}",debug_part2)
 
     # ==========================================
     # Cắt ROI TỪNG PHẦN THEO TỌA ĐỘ (PART2)
@@ -1244,6 +1328,9 @@ for file_path in image_files:
 
         answer_part3, debug_part3, selected_points_part3, is_correct, correct_points = build_part3_grid( part_roi_3, answer_key_3, question_no)
 
+        if is_correct:
+            correct_part3 += 1
+
         all_answers3[question_no] = answer_part3
 
         xr, yr, wr, hr = roi
@@ -1279,18 +1366,123 @@ for file_path in image_files:
             
         cv2.putText(warp,f"Q{question_no}: {answer_part3}",(x+ 40, y+10),cv2.FONT_HERSHEY_SIMPLEX,0.6,color,2)
 
-    # cv2.namedWindow('img_kq', cv2.WINDOW_NORMAL)
-    # cv2.resizeWindow('img_kq', 800, 1000)
-    # cv2.imshow('img_kq', img_kq)
+    # if debug_mode:
+    #     cv2.namedWindow('warp', cv2.WINDOW_NORMAL)
+    #     cv2.resizeWindow('warp', 800, 1000)
+    #     cv2.imshow('warp', warp)
+    #     cv2.waitKey(0)
+    #     cv2.destroyAllWindows()
+        
 
-    cv2.namedWindow('warp', cv2.WINDOW_NORMAL)
-    cv2.resizeWindow('warp', 800, 1000)
-    cv2.imshow('warp', warp)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    print(f"\n====== ALL ĐAP AN ========")
-    print("SBD:",sbd)
-    print("Mã đề:",md)
-    print(all_answers1)
-    print(all_answers2)
-    print(all_answers3)
+    print("\n====== ALL ĐÁP ÁN ========")
+    print("SBD:", sbd)
+    print("Mã đề:", md)
+    print("Phần 1:", all_answers1)
+    print("Phần 2:", all_answers2)
+    print("Phần 3:", all_answers3)
+
+
+    # =========================
+    # TÍNH KẾT QUẢ
+    # =========================
+
+    correct_answers = ( correct_part1 + correct_part2 + correct_part3)
+
+    total_part1 = len(answer_key_part1)
+
+    total_part2 = sum(
+        len(question_answers)
+        for question_answers
+        in answer_key_2.values()
+    )
+
+    total_part3 = len(answer_key_3)
+
+    total_answers = (total_part1 + total_part2 + total_part3)
+
+    incorrect_answers = max(total_answers - correct_answers, 0)
+
+    score = 0
+
+    if total_answers > 0:
+        score = round(correct_answers / total_answers * 10, 2)
+
+
+    # =========================
+    # LƯU ẢNH KẾT QUẢ
+    # =========================
+
+    os.makedirs(RESULT_FOLDER, exist_ok=True)
+
+    original_file_name = os.path.basename(image_path)
+
+    file_name_without_extension = os.path.splitext(original_file_name)[0]
+
+    result_image_name = (f"{file_name_without_extension}-result.jpg")
+
+    result_image_path = os.path.join(RESULT_FOLDER,result_image_name)
+
+    saved = cv2.imwrite(result_image_path,warp)
+
+    if not saved:
+        raise ValueError("Không lưu được ảnh kết quả")
+
+    print("Đã lưu ảnh kết quả:",result_image_path)
+    if not saved:
+        raise ValueError("Không lưu được ảnh kết quả")
+
+    # =========================
+    # TRẢ KẾT QUẢ CHO MAIN.PY
+    # =========================
+
+    return {
+        "stuCode": str(sbd),
+        "examCode": str(md),
+
+        "correctAnswers": int(correct_answers),
+
+        "inCorrectAnswers": int(incorrect_answers),
+
+        "score": float(score),
+
+        # Chỉ đổi tên kết quả cũ khi trả về frontend
+        "answers": {
+            "mcq": {
+                str(question): answer
+                for question, answer
+                in all_answers1.items()
+            },
+
+            "trueFalse": {
+                str(question): answer
+                for question, answer
+                in all_answers2.items()
+            },
+
+            "shortAnswer": {
+                str(question): answer
+                for question, answer
+                in all_answers3.items()
+            },
+        },
+
+        "resultImageName":
+            result_image_name,
+    }
+
+if __name__ == "__main__":
+    test_image_path = (
+        r"C:\Users\Admin\Downloads"
+        r"\Project_1\backend\data"
+        r"\data3 7-2-2026\IMG_7876.png"
+    )
+
+    try:
+        result = detect(test_image_path,debug_mode=True)
+
+        print("\n====== KẾT QUẢ MODEL ======")
+
+        print(json.dumps(result,ensure_ascii=False,indent=4))
+
+    except Exception as error:
+        print("Lỗi chạy model:",str(error))

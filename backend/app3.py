@@ -145,8 +145,8 @@ def cat_roi(roi, cols):
 
         cv2.circle(warp,(wx, wy),radius,(0,255,0),2)
 
-    # cv2.rectangle(warp, (x, y), (x+w, y+h), (0,255,0), 1)
-    # cv2.imshow("ROI", vis)
+    cv2.rectangle(warp, (x, y), (x+w, y+h), (0,255,0), 1)
+    cv2.imshow("ROI", vis)
 
     return result
 
@@ -162,13 +162,13 @@ def read_bubbles(roi_img, cols):
     # gray = clahe.apply(gray)
     
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 31,8)
+    thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 35,6)
     
     # Vá các viền ô tròn bị đứt
     kernel = np.ones((2, 2), np.uint8)
     thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
 
-    # cv2.imshow('Canny thresh', thresh)
+    cv2.imshow('Canny thresh', thresh)
 
     # 2. TÌM TẤT CẢ CÁC Ô TRÒN CHƯA TÔ
     contours, _ = cv2.findContours(thresh.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
@@ -463,7 +463,7 @@ def read_part1(part1_roi, rows, cols, answer_key_1, img=None, offset_x=0, offset
     
     return answers, debug, selected_points
 
-# img_original  = cv2.imread(r'C:\Users\Admin\Downloads\Project_1\backend\data\data4\ptn4_1.png')
+# img_original  = cv2.imread(r'C:\Users\Admin\Downloads\Project_1\backend\data\data4\ptn4_5.png')
 
 folder = r"C:\Users\Admin\Downloads\Project_1\backend\data\data4"
 image_files = []
@@ -723,7 +723,7 @@ for file_path in image_files:
 
         # ô 12
         ((95+3*(block_w+gap_x))/W, (460+2*(block_h+gap_y))/H, (block_w - 30)/W, block_h/H),
-]
+    ]
 
     all_answers1 = {}
 
