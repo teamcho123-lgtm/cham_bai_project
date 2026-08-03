@@ -43,7 +43,27 @@ Trình duyệt  ──ảnh + templateId + đáp án──▶  FastAPI :8001  /c
 
 ---
 
-## Cài đặt
+## Cách nhanh nhất (Windows)
+
+Chỉ cần **2 lệnh**, nhấp đúp chuột cũng được:
+
+```
+setup.bat     ← cài toàn bộ thư viện, chạy 1 lần duy nhất
+start.bat     ← bật cả 3 tiến trình, mở 3 cửa sổ
+```
+
+Sau đó mở http://localhost:3000
+
+`setup.bat` sẽ tự kiểm tra Node.js và Python, báo lỗi rõ ràng kèm link tải nếu
+thiếu. Lần cài đầu mất khoảng 3–5 phút, chủ yếu là tải thư viện frontend.
+
+Đóng cửa sổ nào là tắt tiến trình đó.
+
+> Trên macOS / Linux, hoặc muốn hiểu rõ từng bước, làm thủ công theo phần dưới.
+
+---
+
+## Cài đặt thủ công
 
 Sau khi `git clone` về, chạy lần lượt:
 
