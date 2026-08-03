@@ -1,3 +1,4 @@
+import sys
 import math
 import cv2
 import json
@@ -8,22 +9,24 @@ from function.clamp import clamp
 from function.warp_paper import warp_paper
 from function.dist import dist
 
-import cv2
-import numpy as np
-import math
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
 
-def find_marker_in_roi(roi, offset_x=0, offset_y=0, win_name="ROI DEBUG"):
+BASE_DIR = os.path.dirname( os.path.abspath(__file__))
+
+RESULT_FOLDER = os.path.join( BASE_DIR, "results")
+
+
+def find_marker_in_roi(roi, offset_x=0, offset_y=0, win_name="ROI DEBUG", debug_mode=False):
 
     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
 
     blur = cv2.GaussianBlur(gray, (5,5), 0)
 
-    thresh = cv2.adaptiveThreshold( blur,255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 31,9 )
+    thresh = cv2.adaptiveThreshold( blur,255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 41,11 )
 
-    kernel = np.ones((5, 5), np.uint8) 
-    closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-
-    cnts, _ = cv2.findContours(closed.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts, _ = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     best = None
     best_area = 0
@@ -36,7 +39,7 @@ def find_marker_in_roi(roi, offset_x=0, offset_y=0, win_name="ROI DEBUG"):
             continue
         approx = cv2.approxPolyDP(c, 0.025 * peri, True)
         area = cv2.contourArea(c)
-        if area < 100 or area > 1000:
+        if area < 150 or area > 500:
             continue
         x,y,w,h = cv2.boundingRect(c)
         if h == 0:
@@ -55,12 +58,12 @@ def find_marker_in_roi(roi, offset_x=0, offset_y=0, win_name="ROI DEBUG"):
         # if 3 <= len(approx) <= 10 and 0.5 <= ratio <= 2 and extent > 0.75 and circularity < 0.85:
         # if 1 <= len(approx) <= 10 and 0.5 <= ratio <= 2 and extent > 0.7 and circularity < 0.85 and fill_ratio > 0.4:
 
-        if 1 <= len(approx) <= 9 and extent > 0.65 :
+        if 40 < area < 400 and 0 < ratio < 8 and 5 < h < 20 and 0.5 < extent < 1.0 :
             
             cx = x + w//2
             cy = y + h//2
 
-            cv2.circle(debug,(cx,cy),5,(0,0,255),-1)
+            cv2.circle(debug,(cx,cy),5,(0,255,255),-1)
             cv2.drawContours(debug,[c],-1,(0,255,0),2)
 
             markers.append((cx+offset_x, cy+offset_y))
@@ -70,8 +73,6 @@ def find_marker_in_roi(roi, offset_x=0, offset_y=0, win_name="ROI DEBUG"):
     # Không tìm thấy marker
     if len(markers) == 0:
         print(f"{win_name}: KHÔNG TÌM THẤY MARKER")
-
-        # cv2.imshow(win_name, debug)
         return None
 
     if "TL" in win_name:
@@ -97,20 +98,7 @@ def find_marker_in_roi(roi, offset_x=0, offset_y=0, win_name="ROI DEBUG"):
 
         cv2.circle(debug, (px,py), 5, (0,0,255), -1)
 
-    
-    cv2.imshow(win_name, debug)
-
     return selected
-
-def mouse(event, x, y, flags, param):
-
-    if event == cv2.EVENT_LBUTTONDOWN:
-        # print(x, y)
-
-        points.append((x, y))
-
-        cv2.circle(img, (x, y), 5, (0, 0, 255), -1)
-        # cv2.imshow("warp", img)
 
 def crop_relative(img, roi):
 
@@ -146,7 +134,6 @@ def cat_roi(roi, cols):
         cv2.circle(warp,(wx, wy),radius,(0,255,0),2)
 
     cv2.rectangle(warp, (x, y), (x+w, y+h), (0,255,0), 1)
-    cv2.imshow("ROI", vis)
 
     return result
 
@@ -157,18 +144,8 @@ def read_bubbles(roi_img, cols):
     
     # 1. TIỀN XỬ LÝ (Đã lắp CLAHE trị bóng râm)
     gray = cv2.cvtColor(roi_img, cv2.COLOR_BGR2GRAY)
-    
-    # clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    # gray = clahe.apply(gray)
-    
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 35,6)
-    
-    # Vá các viền ô tròn bị đứt
-    kernel = np.ones((2, 2), np.uint8)
-    thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-
-    cv2.imshow('Canny thresh', thresh)
+    thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 41,6)
 
     # 2. TÌM TẤT CẢ CÁC Ô TRÒN CHƯA TÔ
     contours, _ = cv2.findContours(thresh.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
@@ -463,23 +440,16 @@ def read_part1(part1_roi, rows, cols, answer_key_1, img=None, offset_x=0, offset
     
     return answers, debug, selected_points
 
-# img_original  = cv2.imread(r'C:\Users\Admin\Downloads\Project_1\backend\data\data4\ptn4_5.png')
+# img_original  = cv2.imread(r'C:\Users\Admin\Downloads\Project_1\backend\data\data4 1-8-2026\IMG_8108.JPEG')
+#   IMG_8088.JPEG,   IMG_8092.JPEG ,  IMG_8095.JPEG , IMG_8097.JPEG , IMG_8097.JPEG
 
-folder = r"C:\Users\Admin\Downloads\Project_1\backend\data\data4"
-image_files = []
-image_files.extend(glob.glob(os.path.join(folder, "*.png")))
-for file_path in image_files:
-    img_original = cv2.imread(file_path)
-    file_name = os.path.basename(file_path)
-    print("anh ", file_name)
+def detect(image_path, answer_keys=None, debug_mode=False):
+    global warp
+    
+    img_original = cv2.imread(image_path)
 
-# def detect(image_path):
-
-    # img_original = cv2.imread(image_path)
-
-    # file_name = os.path.basename(image_path)
-
-    # print("Ảnh:", file_name)
+    if img_original is None:
+        raise ValueError( f"Không đọc được ảnh: {image_path}")
 
     img = img_original.copy()   # xử lý
     img_debug   = img_original.copy()   # vẽ debug
@@ -498,26 +468,15 @@ for file_path in image_files:
 
     edged = cv2.Canny(thresh, 75, 200)
 
-    # _, thresh = cv2.threshold(blurred, 150, 255, cv2.THRESH_BINARY_INV)
-    # cv2.imshow('2. Canny Edges', edged)
-    # cv2.namedWindow('Canny Edges', cv2.WINDOW_NORMAL)
-    # cv2.resizeWindow('Canny Edges', 600, 800)
-    # cv2.imshow('Canny Edges', edged)
-
     margin = 0
     img_markers = img.copy()
-    markers = [] # Mảng chứa các điểm neo (Vuông)
-    marker_centers_unique = [] # Mảng chứa tâm điểm neo đã được lọc trùng lặp (nếu có)
-    bubbles = [] # Mảng chứa các ô đáp án (Tròn)
-    timing_marks = []   # các hình chữ nhật bên phải mã đề
-    id_boxes = []   # khung lớn SBD + Mã đề
 
     # CHỌN 4 GÓC CỦA TỜ GIẤY LÀM NEO
     # TL
     H, W = img.shape[:2]
 
-    roi_w = int(W * 0.15)   # rộng 15% ảnh
-    roi_h = int(H * 0.15)   # cao 10% ảnh
+    roi_w = int(W * 0.20)   # rộng 15% ảnh
+    roi_h = int(H * 0.25)   # cao 10% ảnh
 
     margin = 0
     # TL
@@ -527,7 +486,6 @@ for file_path in image_files:
         margin:margin+roi_h,
         margin:margin+roi_w
     ]
-    # cv2.imshow("ROI TL", roi_tl)
 
     # TR
     cv2.rectangle(img, (W-roi_w-margin, margin), (W-margin, margin+roi_h), (0,255,0), 4)
@@ -536,7 +494,6 @@ for file_path in image_files:
         margin:margin+roi_h,
         W-roi_w-margin:W-margin
     ]
-    # cv2.imshow("ROI TR", roi_tr)
     # BL
     cv2.rectangle( img, (margin, H-roi_h-margin), (margin+roi_w, H-margin), (0,255,0), 4)
 
@@ -544,7 +501,6 @@ for file_path in image_files:
         H-roi_h-margin:H-margin,
         margin:margin+roi_w
     ]
-    # cv2.imshow("ROI BL", roi_bl)
     # BR
     cv2.rectangle(img, (W-roi_w-margin, H-roi_h-margin), (W-margin, H-margin), (0,255,0), 4)
 
@@ -552,30 +508,28 @@ for file_path in image_files:
         H-roi_h-margin:H-margin,
         W-roi_w-margin:W-margin
     ]
-    # cv2.imshow("ROI BR", roi_br)
-    # cv2.imshow("ROI Corners", img)
 
     # ==========================================
     # PHÂN LUỒNG LOGIC: 4 ĐIỂM vs 3 ĐIỂM
     # ==========================================
 
-    TL = find_marker_in_roi( roi_tl, margin, margin, "ROI TL DEBUG")
+    TL = find_marker_in_roi( roi_tl, margin, margin, "ROI TL DEBUG", debug_mode)
 
-    TR = find_marker_in_roi( roi_tr, W - roi_w - margin, margin, "ROI TR DEBUG")
+    TR = find_marker_in_roi( roi_tr, W - roi_w - margin, margin, "ROI TR DEBUG", debug_mode)
 
-    BL = find_marker_in_roi( roi_bl, margin,H -  roi_h - margin, "ROI BL DEBUG")
+    BL = find_marker_in_roi( roi_bl, margin,H -  roi_h - margin, "ROI BL DEBUG", debug_mode)
 
-    BR = find_marker_in_roi( roi_br, W - roi_w - margin, H - roi_h - margin, "ROI BR DEBUG")
+    BR = find_marker_in_roi( roi_br, W - roi_w - margin, H - roi_h - margin, "ROI BR DEBUG", debug_mode)
 
-    # print("TL =", TL)
-    # print("TR =", TR)
-    # print("BL =", BL)
-    # print("BR =", BR)
+    print("TL =", TL)
+    print("TR =", TR)
+    print("BL =", BL)
+    print("BR =", BR)
 
-    # print("top =", dist(TL,TR))
-    # print("bottom =", dist(BL,BR))
-    # print("left =", dist(TL,BL))
-    # print("right =", dist(TR,BR))
+    print("top =", dist(TL,TR))
+    print("bottom =", dist(BL,BR))
+    print("left =", dist(TL,BL))
+    print("right =", dist(TR,BR))
 
     for p in [TL,TR,BL,BR]:
         if p is not None:
@@ -597,10 +551,6 @@ for file_path in image_files:
     for p in src.astype(int):
         cv2.circle(img, tuple(p), 15, (255, 0, 255), -1) 
 
-    # cv2.namedWindow('Corners', cv2.WINDOW_NORMAL)
-    # cv2.resizeWindow('Corners', 600, 800)
-    # cv2.imshow('Corners', img)
-
     # print(f"Tọa độ 4 góc: TL={TL}, TR={TR}, BL={BL}, BR={BR}")
 
     # 7. WARP ẢNH VỀ HỆ TỌA ĐỘ CHUẨN
@@ -609,9 +559,6 @@ for file_path in image_files:
     warp_blur = cv2.GaussianBlur(warp_gray, (5,5), 0)
     warp_thresh = cv2.adaptiveThreshold( warp_blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 31, 10)
     cnts, _ = cv2.findContours( warp_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    # cv2.namedWindow('warp', cv2.WINDOW_NORMAL)
-    # cv2.resizeWindow('warp', 600, 800)
-    # cv2.imshow('warp', warp)
     cv2.imwrite("warp_result.png", warp)
 
     img_kq = warp.copy()
@@ -620,8 +567,6 @@ for file_path in image_files:
     # Cắt ROI TỪNG PHẦN THEO TỌA ĐỘ
     # ==========================================
     points = []
-
-    # cv2.imshow("warp", img)
     W =1000
     H =1400
     # Cắt ROI TỪNG PHẦN THEO TỌA ĐỘ (SBD)
@@ -636,36 +581,30 @@ for file_path in image_files:
     # Cắt ROI TỪNG PHẦN THEO TỌA ĐỘ (MD)
     # x = 1400 , x2 = 1510 , y = 120 , 520
     x1_md = 860 
-    x2_md = 940
+    x2_md = 960
     y1_md = 130
     y2_md = 450
 
     MD = (x1_md / W, y1_md / H, (x2_md - x1_md) / W, (y2_md - y1_md) / H)
 
-    md = cat_roi(MD, 3)
+
     sbd = cat_roi(SBD, 6)
+    md = cat_roi(MD, 3)
 
+    md = str(md)
+    
+    # Lấy đáp án được frontend gửi lên
+    md_answer_key = answer_keys.get(md)
 
-    # print('SÔ BÁO DANH : ', sbd)
-    # print('MÃ ĐỀ : ',md)
+    if md_answer_key is None:
+        raise ValueError(
+            f"Không có đáp án mã đề {md} "
+            f"trong dữ liệu từ web"
+        )
 
-    with open("answers.json", "r", encoding="utf-8") as f:
-        exams = json.load(f)
+    answer_key_part1 = (md_answer_key.get("mcq",{}))
 
-    answer_key = exams.get(md)
-
-    if answer_key is None:
-        print("Không tìm thấy mã đề:", md)
-        exit()
-
-    # print("DAP AN")
-    # print(exams)
-
-    md_answer_key =  exams[md]
-    answer_key_part1 = md_answer_key['mcq']
-    answer_key_2 = md_answer_key['tf']
-    answer_key_3 = md_answer_key['essay']
-    # print(answer_key_part1)
+    correct_part1 = 0
 
     # ==========================================
     # Cắt ROI TỪNG PHẦN THEO TỌA ĐỘ (PART1)
@@ -726,6 +665,7 @@ for file_path in image_files:
     ]
 
     all_answers1 = {}
+    correct_part1 = 0
 
     for i, roi in enumerate(PART1):
 
@@ -747,6 +687,9 @@ for file_path in image_files:
         for item in selected_points_part1:
                 (row,student_answer,cx,cy,radius,is_correct,correct_cx,correct_cy) = item
 
+                if is_correct:
+                    correct_part1 += 1
+
                 question_no = i*10 + row + 1
 
                 wx = x + cx
@@ -767,24 +710,91 @@ for file_path in image_files:
 
                 # cv2.putText(warp,f"{question_no}",(wx-15,wy-15),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,2)
 
-        # cv2.imshow(f"Part 1 {i+1}",debug)
+        cv2.rectangle(warp, (x, y), (x+w, y+h), (0,255,0), 2)
 
-        # cv2.rectangle(warp, (x, y), (x+w, y+h), (0,255,0), 2)
+    # =========================
+    # TÍNH KẾT QUẢ
+    # =========================
 
-    cv2.namedWindow('warp', cv2.WINDOW_NORMAL)
-    cv2.resizeWindow('warp', 800, 1000)
-    cv2.imshow('warp', warp)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows() 
-    print(f"\n====== ALL ĐAP AN ========")
-    print("SBD:",sbd)
-    print("Mã đề:",md)
-    print(all_answers1)
+    # Chỉ Phần I (mcq) được chấm trong file này,
+    # nên điểm chỉ tính trên total_part1
+    correct_answers = correct_part1
+
+    total_part1 = len(answer_key_part1)
+
+    total_answers = total_part1
+
+    incorrect_answers = max(total_answers - correct_answers, 0)
+
+    score = 0
+
+    if total_answers > 0:
+        score = round(correct_answers / total_answers * 10, 2)
 
 
-    # return {
+    # =========================
+    # LƯU ẢNH KẾT QUẢ
+    # =========================
 
-    #     "sbd": sbd,
-    #     "md": md,
-    #     "mcq": all_answers1
-    # }
+    os.makedirs(RESULT_FOLDER, exist_ok=True)
+
+    original_file_name = os.path.basename(image_path)
+
+    file_name_without_extension = os.path.splitext(original_file_name)[0]
+
+    result_image_name = (f"{file_name_without_extension}-result.jpg")
+
+    result_image_path = os.path.join(RESULT_FOLDER,result_image_name)
+
+    saved = cv2.imwrite(result_image_path,warp)
+
+    if not saved:
+        raise ValueError("Không lưu được ảnh kết quả")
+
+    print("Đã lưu ảnh kết quả:",result_image_path)
+    if not saved:
+        raise ValueError("Không lưu được ảnh kết quả")
+
+    # =========================
+    # TRẢ KẾT QUẢ CHO MAIN.PY
+    # =========================
+
+    return {
+        "stuCode": str(sbd),
+        "examCode": str(md),
+
+        "correctAnswers": int(correct_answers),
+
+        "inCorrectAnswers": int(incorrect_answers),
+
+        "score": float(score),
+
+        # Chỉ đổi tên kết quả cũ khi trả về frontend
+        "answers": {
+            "mcq": {
+                str(question): answer
+                for question, answer
+                in all_answers1.items()
+            },
+        },
+
+        "resultImageName":
+            result_image_name,
+    }
+
+if __name__ == "__main__":
+    test_image_path = (
+        r"C:\Users\Admin\Downloads"
+        r"\Project_1\backend\data"
+        r"\data3 7-2-2026\IMG_7876.png"
+    )
+
+    try:
+        result = detect(test_image_path,debug_mode=True)
+
+        print("\n====== KẾT QUẢ MODEL ======")
+
+        print(json.dumps(result,ensure_ascii=False,indent=4))
+
+    except Exception as error:
+        print("Lỗi chạy model:",str(error))

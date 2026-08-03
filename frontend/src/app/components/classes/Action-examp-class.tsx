@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import dayjs, { type Dayjs } from "dayjs";
-import { CheckCircleFilled, CheckOutlined, CloseOutlined, DeleteOutlined, EditOutlined, UserOutlined } from "@ant-design/icons";
+import { CheckCircleFilled, CheckOutlined, CloseOutlined, DeleteOutlined, DeleteTwoTone, EditOutlined, UserOutlined } from "@ant-design/icons";
 import { Button, Card, Col, ConfigProvider, DatePicker, Empty, Flex, Form, Input, Modal, Popconfirm, Row, Select, Space, Upload, message, type UploadFile, } from "antd";
 import { ArrowRightOutlined, PlusOutlined, UploadOutlined, } from "@ant-design/icons";
 import { toast } from "react-toastify";
@@ -80,8 +80,8 @@ const ActionExamPage = (props: IClass) => {
                 />
             </div>) : (<div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 ">
                 {students.map((stu, key) =>
-                    <div key={stu.id} className="min-w-0 flex-1">
-                        <div className="flex min-w-0 items-center gap-3 rounded-xl border border-stone-200">
+                    <div key={stu.id} className="min-w-0 flex-1" >
+                        <div style={{ justifyContent: "space-around" }} className="flex min-w-0 items-center gap-3 rounded-xl border border-stone-200">
                             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[#d75d73] shadow-sm">
                                 <UserOutlined />
                             </div>
@@ -89,7 +89,11 @@ const ActionExamPage = (props: IClass) => {
                                 <p className="m-0 text-xs text-stone-400">Học sinh {stu.id}</p>
                                 <p className="m-0 truncate font-medium text-stone-700">{stu?.name} - {stu?.sbd}</p>
                             </div>
+                            <Button style={{ border: "none" }} onClick={() => handleDeleteStudent(stu.id)}>
+                                <DeleteTwoTone twoToneColor="#ff0000" />
+                            </Button>
                         </div>
+
                     </div>
                 )}
             </div>)
@@ -134,7 +138,14 @@ const ActionExamPage = (props: IClass) => {
         }
     }, [defaultClass])
 
-    // console.log(typeof (defaultClass?.id))
+
+    const handleDeleteStudent = (props: any) => {
+        const updatedList = students.filter(student => student.id !== props);
+
+        setStudents(updatedList)
+    }
+
+    console.log(students)
 
 
     const closeModal = () => {
@@ -327,3 +338,7 @@ const ActionExamPage = (props: IClass) => {
 };
 
 export default ActionExamPage;
+
+
+
+

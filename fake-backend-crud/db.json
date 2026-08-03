@@ -1,0 +1,1713 @@
+{
+  "metadata": [
+    {
+      "id": "metadata-001",
+      "schemaVersion": "1.0.0",
+      "applicationName": "Chấm Thi",
+      "description": "Fake backend cho hệ thống quản lý lớp học và chấm bài",
+      "createdAt": "2026-07-22T14:00:00+07:00",
+      "updatedAt": "2026-07-22T14:00:00+07:00"
+    }
+  ],
+  "teachers": [
+    {
+      "id": "teacher-001",
+      "name": "Nguyễn Thị Minh Anh",
+      "email": "minhanh@example.com",
+      "phone": "0901234567",
+      "status": "active",
+      "createdAt": "2026-07-20T08:00:00+07:00",
+      "updatedAt": "2026-07-20T08:00:00+07:00"
+    },
+    {
+      "id": "teacher-002",
+      "name": "Trần Văn Hoàng",
+      "email": "vanhoang@example.com",
+      "phone": "0912345678",
+      "status": "active",
+      "createdAt": "2026-07-20T08:10:00+07:00",
+      "updatedAt": "2026-07-20T08:10:00+07:00"
+    }
+  ],
+  "subjects": [
+    {
+      "id": "subject-001",
+      "name": "Toán học",
+      "code": "MATH",
+      "status": "active"
+    },
+    {
+      "id": "subject-002",
+      "name": "Vật lý",
+      "code": "PHYSICS",
+      "status": "active"
+    },
+    {
+      "id": "subject-003",
+      "name": "Hóa học",
+      "code": "CHEMISTRY",
+      "status": "active"
+    },
+    {
+      "id": "subject-004",
+      "name": "Tiếng Anh",
+      "code": "ENGLISH",
+      "status": "active"
+    },
+    {
+      "id": "subject-005",
+      "name": "Ngữ văn",
+      "code": "LITERATURE",
+      "status": "active"
+    }
+  ],
+  "classes": [
+    {
+      "id": "class-001",
+      "name": "Bài kiểm tra thường xuyên",
+      "grade": "10A1",
+      "schoolYear": "2026-2027",
+      "createdByTeacherId": "teacher-001",
+      "description": "Mô tả",
+      "status": "active",
+      "createdAt": "2026-07-22T14:00:00+07:00",
+      "updatedAt": "2026-07-30T17:52:10+07:00",
+      "students": [
+        {
+          "id": "1",
+          "name": "Nguyễn Văn A",
+          "sbd": "725109",
+          "status": "active"
+        },
+        {
+          "id": "2",
+          "name": "Nguyễn Văn B",
+          "sbd": "735136",
+          "status": "active"
+        },
+        {
+          "id": "3",
+          "name": "Trần Văn C",
+          "sbd": "735125",
+          "status": "active"
+        },
+        {
+          "id": "4",
+          "name": "Lên Văn D",
+          "sbd": "735122",
+          "status": "active"
+        },
+        {
+          "id": "5",
+          "name": "Trịnh Khánh L",
+          "sbd": "735120",
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "id": "class-002",
+      "name": "Bài giữa Kỳ 1",
+      "grade": "11A2",
+      "schoolYear": "2026-2027",
+      "createdByTeacherId": "teacher-002",
+      "description": "Mô tả",
+      "status": "active",
+      "createdAt": "2026-07-22T15:00:00+07:00",
+      "updatedAt": "2026-07-22T15:00:00+07:00",
+      "students": [
+        {
+          "id": "3",
+          "name": "Hoàng Gia Huy",
+          "sbd": "110001",
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "id": "class-003",
+      "name": "Bài kiểm tra Vật lý chương 1",
+      "grade": "10A1",
+      "schoolYear": "2026-2027",
+      "createdByTeacherId": "teacher-001",
+      "description": "Mô tả",
+      "status": "active",
+      "createdAt": "2026-07-22T14:00:00+07:00",
+      "updatedAt": "2026-07-22T14:00:00+07:00",
+      "students": [
+        {
+          "id": "1",
+          "name": "Nguyễn Văn An",
+          "sbd": "100001",
+          "status": "active"
+        },
+        {
+          "id": "2",
+          "name": "Trần Thị Bình",
+          "sbd": "100002",
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "id": "class-004",
+      "name": "Chấm Bài trắc nghiệm 2.0",
+      "grade": "10A3",
+      "createdByTeacherId": "",
+      "description": "Mô tả",
+      "status": "active",
+      "createdAt": "2026-07-24T01:12:08+07:00",
+      "updatedAt": "2026-07-24T01:12:08+07:00",
+      "students": [
+        {
+          "id": "1",
+          "name": "Nguyễn Huỳnh Hồng Phước",
+          "sbd": "5213185",
+          "status": "active"
+        },
+        {
+          "id": "2",
+          "name": "Lê Hoài Thi",
+          "sbd": "123123",
+          "status": "active"
+        },
+        {
+          "id": "3",
+          "name": "Nguyễn Ken",
+          "sbd": "213123",
+          "status": "active"
+        },
+        {
+          "id": "4",
+          "name": "Hồng Phước",
+          "sbd": "31234",
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "id": "class-005",
+      "name": "Bài thi cuối kỳ cuả lớp 10",
+      "grade": "10A2",
+      "createdByTeacherId": "",
+      "description": "Toán",
+      "status": "active",
+      "createdAt": "2026-07-27T18:47:02+07:00",
+      "updatedAt": "2026-07-27T18:47:02+07:00",
+      "students": [
+        {
+          "id": "1",
+          "name": "Nguyễn Văn A",
+          "sbd": "123123",
+          "status": "active"
+        },
+        {
+          "id": "2",
+          "name": "Nguyễn Văn B ",
+          "sbd": "123222",
+          "status": "active"
+        },
+        {
+          "id": "3",
+          "name": "Võ Trung C",
+          "sbd": "123223",
+          "status": "active"
+        },
+        {
+          "id": "4",
+          "name": "Lê Văn D ",
+          "sbd": "123345",
+          "status": "active"
+        }
+      ]
+    },
+    {
+      "id": "class-006",
+      "name": "Class Test 1",
+      "grade": "9",
+      "createdByTeacherId": "",
+      "description": "Hóa",
+      "status": "active",
+      "createdAt": "2026-08-01T02:35:03+07:00",
+      "updatedAt": "2026-08-01T02:35:03+07:00",
+      "students": [
+        {
+          "id": "1",
+          "name": "Nguyễn Văn A",
+          "sbd": "60038578",
+          "status": "active"
+        },
+        {
+          "id": "2",
+          "name": "Lê B",
+          "sbd": "73525912",
+          "status": "active"
+        },
+        {
+          "id": "3",
+          "name": "Trịnh Khánh L",
+          "sbd": "69017856",
+          "status": "active"
+        },
+        {
+          "id": "4",
+          "name": "Nguyễn Huỳnh Hồng Phước",
+          "sbd": "72510513",
+          "status": "active"
+        },
+        {
+          "id": "5",
+          "name": "Lê Hoài T",
+          "sbd": "71290581",
+          "status": "active"
+        },
+        {
+          "id": "6",
+          "name": "Vũ Trọng L",
+          "sbd": "30171135",
+          "status": "active"
+        },
+        {
+          "id": "7",
+          "name": "Phạm Quang K",
+          "sbd": "71387251",
+          "status": "active"
+        },
+        {
+          "id": "8",
+          "name": "Trần Quốc V",
+          "sbd": "22001162",
+          "status": "active"
+        },
+        {
+          "id": "9",
+          "name": "Võ Trung H",
+          "sbd": "22110037",
+          "status": "active"
+        }
+      ]
+    }
+  ],
+  "exams": [
+    {
+      "id": "exam-003",
+      "name": "Thi thử tốt nghiệp Tiếng Anh",
+      "classId": "class-003",
+      "subjectId": "",
+      "teacherId": "teacher-001",
+      "templateId": "template-004",
+      "createdAt": "2026-07-18T07:30:00+07:00",
+      "updatedAt": "2026-08-03T15:22:58+07:00",
+      "note": "",
+      "status": "draft",
+      "files": {
+        "examFile": {
+          "name": "de-thi-thu-tieng-anh.pdf",
+          "url": "/uploads/de-thi-thu-tieng-anh.pdf",
+          "type": "application/pdf",
+          "size": 512000
+        },
+        "answerFile": {
+          "name": "dap-an-tieng-anh.pdf",
+          "url": "/uploads/dap-an-tieng-anh.pdf",
+          "type": "application/pdf",
+          "size": 125000
+        }
+      },
+      "gradingConfig": {
+        "maxScore": 10,
+        "roundToDigits": 2,
+        "blankAnswerScore": 0,
+        "invalidAnswerScore": 0,
+        "multipleMarkPolicy": "invalid",
+        "sections": {
+          "mcq": {
+            "enabled": true,
+            "scoringMode": "equal",
+            "totalPoints": 10
+          },
+          "trueFalse": {
+            "enabled": false,
+            "scoringMode": "equal",
+            "totalPoints": 0
+          },
+          "shortAnswer": {
+            "enabled": false,
+            "scoringMode": "equal",
+            "totalPoints": 0,
+            "ignoreSpaces": true,
+            "acceptCommaDecimalSeparator": false,
+            "acceptDotDecimalSeparator": false
+          }
+        }
+      },
+      "statistics": {
+        "totalStudents": 3,
+        "submitted": 3,
+        "graded": 3,
+        "pending": 0,
+        "averageScore": 7.83,
+        "highestScore": 9,
+        "lowestScore": 6.5
+      }
+    },
+    {
+      "id": "exam-001",
+      "name": "Thi cuối Kỳ 1 môn Toán",
+      "classId": "class-005",
+      "subjectId": "",
+      "teacherId": "",
+      "templateId": "template-001",
+      "createdAt": "2026-07-31T19:29:57+07:00",
+      "updatedAt": "2026-07-31T19:29:57+07:00",
+      "note": "",
+      "status": "draft"
+    },
+    {
+      "id": "exam-002",
+      "name": "Thi cuối Kỳ 2 môn Toán",
+      "classId": "class-001",
+      "subjectId": "",
+      "teacherId": "teacher-001",
+      "templateId": "template-002",
+      "createdAt": "2026-07-31T19:29:57+07:00",
+      "updatedAt": "2026-08-03T15:19:41+07:00",
+      "note": "",
+      "status": "draft"
+    },
+    {
+      "id": "exam-004",
+      "name": "Test1",
+      "classId": "class-004",
+      "subjectId": "",
+      "teacherId": "",
+      "templateId": "template-001",
+      "createdAt": "2026-07-31T22:26:46+07:00",
+      "updatedAt": "2026-07-31T22:26:46+07:00",
+      "note": "",
+      "status": "draft"
+    },
+    {
+      "id": "exam-005",
+      "name": "Thi giữa kỳ môn Hóa ",
+      "classId": "class-006",
+      "subjectId": "",
+      "teacherId": "",
+      "templateId": "template-001",
+      "createdAt": "2026-08-01T02:35:35+07:00",
+      "updatedAt": "2026-08-01T02:35:35+07:00",
+      "note": "",
+      "status": "draft"
+    },
+    {
+      "id": "exam-006",
+      "name": "Kiểm tra thường xuyên 1",
+      "classId": "class-002",
+      "subjectId": "",
+      "teacherId": "teacher-002",
+      "templateId": "template-003",
+      "createdAt": "2026-08-02T01:35:34+07:00",
+      "updatedAt": "2026-08-02T01:35:34+07:00",
+      "note": "",
+      "status": "draft"
+    },
+    {
+      "id": "exam-007",
+      "name": "Test1",
+      "classId": "class-003",
+      "subjectId": "",
+      "teacherId": "teacher-001",
+      "templateId": "template-004",
+      "createdAt": "2026-08-03T15:26:10+07:00",
+      "updatedAt": "2026-08-03T15:26:10+07:00",
+      "note": "",
+      "status": "draft"
+    }
+  ],
+  "answerSheetTemplates": [
+    {
+      "id": "exam-001",
+      "templateId": "template-001",
+      "classId": "class-005",
+      "name": "Phiếu Toán 40-8-6",
+      "description": "40 câu trắc nghiệm, 8 câu đúng sai, 6 câu trả lời ngắn",
+      "detector": {
+        "name": "app1",
+        "version": "1.0.0"
+      },
+      "questionCount": {
+        "mcq": 10,
+        "trueFalse": 2,
+        "shortAnswer": 2
+      },
+      "answerKeys": {
+        "1234": {
+          "mcq": {
+            "1": "C",
+            "2": "B",
+            "3": "D",
+            "4": "A",
+            "5": "D",
+            "6": "B",
+            "7": "A",
+            "8": "B",
+            "9": "D",
+            "10": "A",
+            "11": "C",
+            "12": "A",
+            "13": "A",
+            "14": "D",
+            "15": "B",
+            "16": "A",
+            "17": "C",
+            "18": "B",
+            "19": "D",
+            "20": "B",
+            "21": "A",
+            "22": "C",
+            "23": "B",
+            "24": "A",
+            "25": "B",
+            "26": "C",
+            "27": "C",
+            "28": "D",
+            "29": "B",
+            "30": "A",
+            "31": "C",
+            "32": "C",
+            "33": "A",
+            "34": "B",
+            "35": "B",
+            "36": "B",
+            "37": "D",
+            "38": "C",
+            "39": "B",
+            "40": "A"
+          },
+          "trueFalse": {
+            "1": {
+              "a": false,
+              "b": false,
+              "c": true,
+              "d": true
+            },
+            "2": {
+              "a": true,
+              "b": false,
+              "c": true,
+              "d": false
+            },
+            "3": {
+              "a": false,
+              "b": true,
+              "c": false,
+              "d": false
+            },
+            "4": {
+              "a": true,
+              "b": true,
+              "c": true,
+              "d": false
+            },
+            "5": {
+              "a": false,
+              "b": true,
+              "c": true,
+              "d": false
+            },
+            "6": {
+              "a": true,
+              "b": false,
+              "c": true,
+              "d": true
+            },
+            "7": {
+              "a": false,
+              "b": true,
+              "c": true,
+              "d": false
+            },
+            "8": {
+              "a": false,
+              "b": true,
+              "c": true,
+              "d": false
+            }
+          },
+          "shortAnswer": {
+            "1": {
+              "answer": "-7,9"
+            },
+            "2": {
+              "answer": "1025"
+            },
+            "3": {
+              "answer": "15"
+            },
+            "4": {
+              "answer": "179"
+            },
+            "5": {
+              "answer": "1,5"
+            },
+            "6": {
+              "answer": "3089"
+            }
+          }
+        },
+        "0426": {
+          "mcq": {
+            "1": "A",
+            "2": "B",
+            "3": "C",
+            "4": "C",
+            "5": "B",
+            "6": "B",
+            "7": "C",
+            "8": "D",
+            "9": "D",
+            "10": "C",
+            "11": "C",
+            "12": "D",
+            "13": "C",
+            "14": "C",
+            "15": "C",
+            "16": "B",
+            "17": "A",
+            "18": "B",
+            "19": "C",
+            "20": "D",
+            "21": "B",
+            "22": "B",
+            "23": "C",
+            "24": "C",
+            "25": "C",
+            "26": "B",
+            "27": "A",
+            "28": "B",
+            "29": "B",
+            "30": "C",
+            "31": "C",
+            "32": "C",
+            "33": "C",
+            "34": "C",
+            "35": "C",
+            "36": "B",
+            "37": "B",
+            "38": "C",
+            "39": "C",
+            "40": "C"
+          },
+          "trueFalse": {
+            "1": {
+              "a": true,
+              "b": false,
+              "c": true,
+              "d": false
+            },
+            "2": {
+              "a": false,
+              "b": true,
+              "c": false,
+              "d": true
+            },
+            "3": {
+              "a": false,
+              "b": true,
+              "c": false,
+              "d": false
+            },
+            "4": {
+              "a": false,
+              "b": false,
+              "c": true,
+              "d": true
+            },
+            "5": {
+              "a": false,
+              "b": true,
+              "c": true,
+              "d": true
+            },
+            "6": {
+              "a": false,
+              "b": true,
+              "c": false,
+              "d": false
+            },
+            "7": {
+              "a": true,
+              "b": true,
+              "c": true,
+              "d": false
+            },
+            "8": {
+              "a": false,
+              "b": false,
+              "c": true,
+              "d": true
+            }
+          },
+          "shortAnswer": {
+            "1": {
+              "answer": "1,234"
+            },
+            "2": {
+              "answer": "-1,2"
+            },
+            "3": {
+              "answer": "0,13"
+            },
+            "4": {
+              "answer": "-0,1"
+            },
+            "5": {
+              "answer": "1234"
+            },
+            "6": {
+              "answer": "0,12"
+            }
+          }
+        },
+        "0115": {
+          "mcq": {
+            "1": "B",
+            "2": "C",
+            "3": "A",
+            "4": "D",
+            "5": "C",
+            "6": "A",
+            "7": "D",
+            "8": "B",
+            "9": "A",
+            "10": "D",
+            "11": "B",
+            "12": "C",
+            "13": "A",
+            "14": "D",
+            "15": "B",
+            "16": "C",
+            "17": "D",
+            "18": "A",
+            "19": "B",
+            "20": "C",
+            "21": "D",
+            "22": "A",
+            "23": "C",
+            "24": "B",
+            "25": "D",
+            "26": "C",
+            "27": "A",
+            "28": "B",
+            "29": "D",
+            "30": "A",
+            "31": "B",
+            "32": "D",
+            "33": "C",
+            "34": "A",
+            "35": "B",
+            "36": "D",
+            "37": "C",
+            "38": "B",
+            "39": "A",
+            "40": "D"
+          },
+          "trueFalse": {
+            "1": {
+              "a": false,
+              "b": true,
+              "c": true,
+              "d": false
+            },
+            "2": {
+              "a": true,
+              "b": false,
+              "c": false,
+              "d": true
+            },
+            "3": {
+              "a": true,
+              "b": true,
+              "c": false,
+              "d": false
+            },
+            "4": {
+              "a": false,
+              "b": true,
+              "c": false,
+              "d": true
+            },
+            "5": {
+              "a": true,
+              "b": false,
+              "c": true,
+              "d": false
+            },
+            "6": {
+              "a": false,
+              "b": false,
+              "c": true,
+              "d": true
+            },
+            "7": {
+              "a": true,
+              "b": false,
+              "c": false,
+              "d": true
+            },
+            "8": {
+              "a": false,
+              "b": true,
+              "c": true,
+              "d": false
+            }
+          },
+          "shortAnswer": {
+            "1": {
+              "answer": "2,5"
+            },
+            "2": {
+              "answer": "-3"
+            },
+            "3": {
+              "answer": "0,25"
+            },
+            "4": {
+              "answer": "12"
+            },
+            "5": {
+              "answer": "100"
+            },
+            "6": {
+              "answer": "0,5"
+            }
+          }
+        }
+      },
+      "createdAt": "2026-07-22T14:00:00+07:00",
+      "updatedAt": "2026-07-31T23:03:04+07:00"
+    },
+    {
+      "id": "exam-002",
+      "templateId": "template-002",
+      "classId": "class-001",
+      "name": "Phiếu Vật lý 10-2-2",
+      "description": "Mẫu phiếu thử nghiệm cho môn Vật lý",
+      "detector": {
+        "name": "app2",
+        "version": "1.1.0"
+      },
+      "questionCount": {
+        "mcq": 10,
+        "trueFalse": 2,
+        "shortAnswer": 2
+      },
+      "answerKeys": {
+        "111": {
+          "mcq": {
+            "1": "A",
+            "2": "C",
+            "3": "B",
+            "4": "D",
+            "5": "A",
+            "6": "B",
+            "7": "C",
+            "8": "D",
+            "9": "B",
+            "10": "A"
+          },
+          "trueFalse": {
+            "1": {
+              "a": true,
+              "b": false,
+              "c": true,
+              "d": false
+            },
+            "2": {
+              "a": false,
+              "b": true,
+              "c": true,
+              "d": false
+            }
+          },
+          "shortAnswer": {
+            "1": {
+              "answer": "9,8"
+            },
+            "2": {
+              "answer": "20"
+            }
+          }
+        }
+      },
+      "createdAt": "2026-07-22T15:00:00+07:00",
+      "updatedAt": "2026-07-31T22:49:45+07:00"
+    },
+    {
+      "id": "exam-003",
+      "templateId": "template-004",
+      "classId": "class-003",
+      "name": "Phiếu Tiếng Anh 10 câu",
+      "description": "Mẫu demo trắc nghiệm Tiếng Anh",
+      "detector": {
+        "name": "app1",
+        "version": "1.0.0"
+      },
+      "questionCount": {
+        "mcq": 10,
+        "trueFalse": 2,
+        "shortAnswer": 2
+      },
+      "answerKeys": {
+        "0018": {
+          "mcq": {
+            "1": "A",
+            "2": "B",
+            "3": "C",
+            "4": "D",
+            "5": "A",
+            "6": "C",
+            "7": "B",
+            "8": "D",
+            "9": "A",
+            "10": "B"
+          },
+          "trueFalse": {
+            "1": {
+              "c": true
+            },
+            "2": {
+              "c": true
+            }
+          },
+          "shortAnswer": {
+            "1": {
+              "answer": "213"
+            },
+            "2": {
+              "answer": "123"
+            }
+          }
+        },
+        "0019": {
+          "mcq": {
+            "1": "A",
+            "2": "B",
+            "3": "C",
+            "4": "C",
+            "5": "C",
+            "6": "B",
+            "7": "C",
+            "8": "C",
+            "9": "B",
+            "10": "D"
+          },
+          "trueFalse": {
+            "1": {
+              "c": true
+            },
+            "2": {
+              "c": true
+            }
+          },
+          "shortAnswer": {
+            "1": {
+              "answer": "213"
+            },
+            "2": {
+              "answer": "312"
+            }
+          }
+        }
+      },
+      "createdAt": "2026-07-18T07:30:00+07:00",
+      "updatedAt": "2026-08-03T15:25:08+07:00"
+    },
+    {
+      "id": "exam-004",
+      "templateId": "template-001",
+      "classId": "class-004",
+      "name": "Test1",
+      "description": "",
+      "detector": {
+        "name": "app1",
+        "version": "1.0.0"
+      },
+      "questionCount": {
+        "mcq": 40,
+        "trueFalse": 8,
+        "shortAnswer": 6
+      },
+      "answerKeys": {
+        "0287": {
+          "mcq": {
+            "1": "A",
+            "2": "B",
+            "3": "C",
+            "4": "B",
+            "5": "C",
+            "6": "D",
+            "7": "A",
+            "8": "B",
+            "9": "C",
+            "10": "D",
+            "11": "C",
+            "12": "B",
+            "13": "B",
+            "14": "B",
+            "15": "C",
+            "16": "B",
+            "17": "B",
+            "18": "B",
+            "19": "D",
+            "20": "C",
+            "21": "B",
+            "22": "A",
+            "23": "C",
+            "24": "B",
+            "25": "C",
+            "26": "B",
+            "27": "C",
+            "28": "C",
+            "29": "C",
+            "30": "A",
+            "31": "C",
+            "32": "D",
+            "33": "C",
+            "34": "B",
+            "35": "C",
+            "36": "C",
+            "37": "C",
+            "38": "B",
+            "39": "A",
+            "40": "A"
+          },
+          "trueFalse": {
+            "1": {
+              "a": true,
+              "b": true,
+              "c": false,
+              "d": false
+            },
+            "2": {
+              "a": false,
+              "b": false,
+              "c": true,
+              "d": false
+            },
+            "3": {
+              "a": false,
+              "b": false,
+              "c": true,
+              "d": true
+            },
+            "4": {
+              "a": false,
+              "b": true,
+              "c": true,
+              "d": false
+            },
+            "5": {
+              "a": false,
+              "b": false,
+              "c": true,
+              "d": false
+            },
+            "6": {
+              "a": false,
+              "b": true,
+              "c": false,
+              "d": true
+            },
+            "7": {
+              "a": true,
+              "b": false,
+              "c": false,
+              "d": true
+            },
+            "8": {
+              "a": false,
+              "b": false,
+              "c": false,
+              "d": true
+            }
+          },
+          "shortAnswer": {
+            "1": {
+              "answer": "1,85"
+            },
+            "2": {
+              "answer": "1275"
+            },
+            "3": {
+              "answer": "1195"
+            },
+            "4": {
+              "answer": "1800"
+            },
+            "5": {
+              "answer": "7,5"
+            },
+            "6": {
+              "answer": "1991"
+            }
+          }
+        }
+      },
+      "createdAt": "2026-07-31T22:26:46+07:00",
+      "updatedAt": "2026-07-31T22:30:36+07:00"
+    },
+    {
+      "id": "exam-005",
+      "templateId": "template-001",
+      "classId": "class-006",
+      "name": "Thi giữa kỳ môn Hóa ",
+      "description": "",
+      "detector": {
+        "name": "app1",
+        "version": "1.0.0"
+      },
+      "questionCount": {
+        "mcq": 40,
+        "trueFalse": 8,
+        "shortAnswer": 6
+      },
+      "answerKeys": {
+        "1234": {
+          "mcq": {
+            "1": "A",
+            "2": "B",
+            "3": "C",
+            "4": "B",
+            "5": "B",
+            "6": "C",
+            "7": "C",
+            "8": "C",
+            "9": "B",
+            "10": "A",
+            "11": "B",
+            "12": "C",
+            "13": "D",
+            "14": "D",
+            "15": "B",
+            "16": "C",
+            "17": "C",
+            "18": "C",
+            "19": "C",
+            "20": "C",
+            "21": "B",
+            "22": "B",
+            "23": "C",
+            "24": "C",
+            "25": "D",
+            "26": "C",
+            "27": "B",
+            "28": "A",
+            "29": "B",
+            "30": "D",
+            "31": "B",
+            "32": "A",
+            "33": "B",
+            "34": "C",
+            "35": "C",
+            "36": "C",
+            "37": "B",
+            "38": "B",
+            "39": "B",
+            "40": "A"
+          },
+          "trueFalse": {
+            "1": {
+              "a": true,
+              "b": true,
+              "c": false,
+              "d": false
+            },
+            "2": {
+              "a": false,
+              "b": false,
+              "c": true,
+              "d": true
+            },
+            "3": {
+              "a": false,
+              "b": true,
+              "c": false,
+              "d": false
+            },
+            "4": {
+              "a": false,
+              "b": true,
+              "c": false,
+              "d": false
+            },
+            "5": {
+              "a": false,
+              "b": false,
+              "c": true,
+              "d": true
+            },
+            "6": {
+              "a": true,
+              "b": true,
+              "c": false,
+              "d": false
+            },
+            "7": {
+              "a": true,
+              "b": true,
+              "c": false,
+              "d": false
+            },
+            "8": {
+              "a": false,
+              "b": false,
+              "c": true,
+              "d": true
+            }
+          },
+          "shortAnswer": {
+            "1": {
+              "answer": "1"
+            },
+            "2": {
+              "answer": "2"
+            },
+            "3": {
+              "answer": "3"
+            },
+            "4": {
+              "answer": "4"
+            },
+            "5": {
+              "answer": "5"
+            },
+            "6": {
+              "answer": "5"
+            }
+          }
+        },
+        "0287": {
+          "mcq": {
+            "1": "A",
+            "2": "B",
+            "3": "C",
+            "4": "B",
+            "5": "C",
+            "6": "D",
+            "7": "A",
+            "8": "B",
+            "9": "C",
+            "10": "D",
+            "11": "C",
+            "12": "B",
+            "13": "B",
+            "14": "B",
+            "15": "C",
+            "16": "B",
+            "17": "B",
+            "18": "B",
+            "19": "D",
+            "20": "C",
+            "21": "B",
+            "22": "A",
+            "23": "C",
+            "24": "B",
+            "25": "C",
+            "26": "B",
+            "27": "C",
+            "28": "C",
+            "29": "C",
+            "30": "A",
+            "31": "C",
+            "32": "D",
+            "33": "C",
+            "34": "B",
+            "35": "C",
+            "36": "C",
+            "37": "C",
+            "38": "B",
+            "39": "A",
+            "40": "A"
+          },
+          "trueFalse": {
+            "1": {
+              "a": true,
+              "b": true,
+              "c": false,
+              "d": false
+            },
+            "2": {
+              "a": false,
+              "b": false,
+              "c": true,
+              "d": false
+            },
+            "3": {
+              "a": false,
+              "b": false,
+              "c": true,
+              "d": true
+            },
+            "4": {
+              "a": false,
+              "b": true,
+              "c": true,
+              "d": false
+            },
+            "5": {
+              "a": false,
+              "b": false,
+              "c": true,
+              "d": false
+            },
+            "6": {
+              "a": false,
+              "b": true,
+              "c": false,
+              "d": true
+            },
+            "7": {
+              "a": true,
+              "b": false,
+              "c": false,
+              "d": true
+            },
+            "8": {
+              "a": false,
+              "b": false,
+              "c": false,
+              "d": true
+            }
+          },
+          "shortAnswer": {
+            "1": {
+              "answer": "1,85"
+            },
+            "2": {
+              "answer": "1275"
+            },
+            "3": {
+              "answer": "1195"
+            },
+            "4": {
+              "answer": "1800"
+            },
+            "5": {
+              "answer": "7,5"
+            },
+            "6": {
+              "answer": "1991"
+            }
+          }
+        },
+        "0426": {
+          "mcq": {
+            "1": "A",
+            "2": "B",
+            "3": "C",
+            "4": "C",
+            "5": "B",
+            "6": "B",
+            "7": "C",
+            "8": "D",
+            "9": "D",
+            "10": "C",
+            "11": "C",
+            "12": "D",
+            "13": "C",
+            "14": "C",
+            "15": "C",
+            "16": "B",
+            "17": "A",
+            "18": "B",
+            "19": "C",
+            "20": "D",
+            "21": "B",
+            "22": "B",
+            "23": "C",
+            "24": "C",
+            "25": "C",
+            "26": "B",
+            "27": "A",
+            "28": "B",
+            "29": "B",
+            "30": "C",
+            "31": "C",
+            "32": "C",
+            "33": "C",
+            "34": "C",
+            "35": "C",
+            "36": "B",
+            "37": "B",
+            "38": "C",
+            "39": "C",
+            "40": "C"
+          },
+          "trueFalse": {
+            "1": {
+              "a": true,
+              "b": false,
+              "c": true,
+              "d": false
+            },
+            "2": {
+              "a": false,
+              "b": true,
+              "c": false,
+              "d": true
+            },
+            "3": {
+              "a": false,
+              "b": true,
+              "c": false,
+              "d": false
+            },
+            "4": {
+              "a": false,
+              "b": false,
+              "c": true,
+              "d": true
+            },
+            "5": {
+              "a": false,
+              "b": true,
+              "c": true,
+              "d": true
+            },
+            "6": {
+              "a": false,
+              "b": true,
+              "c": false,
+              "d": false
+            },
+            "7": {
+              "a": true,
+              "b": true,
+              "c": true,
+              "d": false
+            },
+            "8": {
+              "a": false,
+              "b": false,
+              "c": true,
+              "d": true
+            }
+          },
+          "shortAnswer": {
+            "1": {
+              "answer": "1,234"
+            },
+            "2": {
+              "answer": "-1,2"
+            },
+            "3": {
+              "answer": "0,13"
+            },
+            "4": {
+              "answer": "-0,1"
+            },
+            "5": {
+              "answer": "1234"
+            },
+            "6": {
+              "answer": "0,12"
+            }
+          }
+        },
+        "0115": {
+          "mcq": {
+            "1": "B",
+            "2": "C",
+            "3": "A",
+            "4": "D",
+            "5": "C",
+            "6": "A",
+            "7": "D",
+            "8": "B",
+            "9": "A",
+            "10": "D",
+            "11": "B",
+            "12": "C",
+            "13": "A",
+            "14": "D",
+            "15": "B",
+            "16": "C",
+            "17": "D",
+            "18": "A",
+            "19": "B",
+            "20": "C",
+            "21": "D",
+            "22": "A",
+            "23": "C",
+            "24": "B",
+            "25": "D",
+            "26": "C",
+            "27": "A",
+            "28": "B",
+            "29": "D",
+            "30": "A",
+            "31": "B",
+            "32": "D",
+            "33": "C",
+            "34": "A",
+            "35": "B",
+            "36": "D",
+            "37": "C",
+            "38": "B",
+            "39": "A",
+            "40": "D"
+          },
+          "trueFalse": {
+            "1": {
+              "a": false,
+              "b": true,
+              "c": true,
+              "d": false
+            },
+            "2": {
+              "a": true,
+              "b": false,
+              "c": false,
+              "d": true
+            },
+            "3": {
+              "a": true,
+              "b": true,
+              "c": false,
+              "d": false
+            },
+            "4": {
+              "a": false,
+              "b": true,
+              "c": false,
+              "d": true
+            },
+            "5": {
+              "a": true,
+              "b": false,
+              "c": true,
+              "d": false
+            },
+            "6": {
+              "a": false,
+              "b": false,
+              "c": true,
+              "d": true
+            },
+            "7": {
+              "a": true,
+              "b": false,
+              "c": false,
+              "d": true
+            },
+            "8": {
+              "a": false,
+              "b": true,
+              "c": true,
+              "d": false
+            }
+          },
+          "shortAnswer": {
+            "1": {
+              "answer": "2,5"
+            },
+            "2": {
+              "answer": "-3"
+            },
+            "3": {
+              "answer": "0,25"
+            },
+            "4": {
+              "answer": "12"
+            },
+            "5": {
+              "answer": "100"
+            },
+            "6": {
+              "answer": "0,5"
+            }
+          }
+        }
+      },
+      "createdAt": "2026-08-01T02:35:35+07:00",
+      "updatedAt": "2026-08-01T02:56:08+07:00"
+    },
+    {
+      "id": "exam-006",
+      "templateId": "template-003",
+      "classId": "class-002",
+      "name": "Kiểm tra thường xuyên 1",
+      "description": "",
+      "detector": {
+        "name": "app3",
+        "version": "1.0.0"
+      },
+      "questionCount": {
+        "mcq": 120,
+        "trueFalse": 0,
+        "shortAnswer": 0
+      },
+      "answerKeys": {
+        "191": {
+          "mcq": {
+            "1": "A",
+            "2": "B",
+            "3": "B",
+            "4": "B",
+            "5": "B",
+            "6": "C"
+          },
+          "trueFalse": {},
+          "shortAnswer": {}
+        }
+      },
+      "createdAt": "2026-08-02T01:35:34+07:00",
+      "updatedAt": "2026-08-02T01:36:12+07:00"
+    },
+    {
+      "id": "exam-007",
+      "templateId": "template-004",
+      "classId": "class-003",
+      "name": "Test1",
+      "description": "",
+      "detector": {
+        "name": "app4",
+        "version": "1.0.0"
+      },
+      "questionCount": {
+        "mcq": 1,
+        "trueFalse": 0,
+        "shortAnswer": 0
+      },
+      "answerKeys": {
+        "0018": {
+          "mcq": {
+            "1": "A"
+          },
+          "trueFalse": {},
+          "shortAnswer": {}
+        }
+      },
+      "createdAt": "2026-08-03T15:26:10+07:00",
+      "updatedAt": "2026-08-03T15:26:33+07:00"
+    }
+  ],
+  "submissions": [
+    {
+      "id": "submission-003",
+      "examId": "exam-003",
+      "studentId": "student-008",
+      "templateId": "template-003",
+      "examCode": "201",
+      "sbd": "120001",
+      "status": "graded",
+      "scanImageUrl": "/uploads/scans/submission-003.jpg",
+      "answers": {
+        "mcq": {
+          "1": "A",
+          "2": "B",
+          "3": "C",
+          "4": "D",
+          "5": "A",
+          "6": "C",
+          "7": "B",
+          "8": "D",
+          "9": "A",
+          "10": "B"
+        },
+        "trueFalse": {},
+        "shortAnswer": {}
+      },
+      "result": {
+        "mcqCorrect": 10,
+        "mcqTotal": 10,
+        "trueFalseCorrectStatements": 0,
+        "trueFalseTotalStatements": 0,
+        "shortAnswerCorrect": 0,
+        "shortAnswerTotal": 0,
+        "score": 9,
+        "warnings": []
+      },
+      "submittedAt": "2026-07-20T09:00:00+07:00",
+      "gradedAt": "2026-07-20T09:00:03+07:00"
+    },
+    {
+      "id": "submission-004",
+      "examId": "exam-003",
+      "studentId": "student-009",
+      "templateId": "template-003",
+      "examCode": "201",
+      "sbd": "120002",
+      "status": "graded",
+      "scanImageUrl": "/uploads/scans/submission-004.jpg",
+      "answers": {
+        "mcq": {
+          "1": "A",
+          "2": "B",
+          "3": "D",
+          "4": "D",
+          "5": "A",
+          "6": "C",
+          "7": "B",
+          "8": "A",
+          "9": "A",
+          "10": "B"
+        },
+        "trueFalse": {},
+        "shortAnswer": {}
+      },
+      "result": {
+        "mcqCorrect": 8,
+        "mcqTotal": 10,
+        "trueFalseCorrectStatements": 0,
+        "trueFalseTotalStatements": 0,
+        "shortAnswerCorrect": 0,
+        "shortAnswerTotal": 0,
+        "score": 8,
+        "warnings": []
+      },
+      "submittedAt": "2026-07-20T09:02:00+07:00",
+      "gradedAt": "2026-07-20T09:02:03+07:00"
+    },
+    {
+      "id": "submission-005",
+      "examId": "exam-003",
+      "studentId": "student-010",
+      "templateId": "template-003",
+      "examCode": "201",
+      "sbd": "120003",
+      "status": "graded",
+      "scanImageUrl": "/uploads/scans/submission-005.jpg",
+      "answers": {
+        "mcq": {
+          "1": "A",
+          "2": "D",
+          "3": "C",
+          "4": "D",
+          "5": "B",
+          "6": "C",
+          "7": "B",
+          "8": "D",
+          "9": "C",
+          "10": "B"
+        },
+        "trueFalse": {},
+        "shortAnswer": {}
+      },
+      "result": {
+        "mcqCorrect": 7,
+        "mcqTotal": 10,
+        "trueFalseCorrectStatements": 0,
+        "trueFalseTotalStatements": 0,
+        "shortAnswerCorrect": 0,
+        "shortAnswerTotal": 0,
+        "score": 6.5,
+        "warnings": []
+      },
+      "submittedAt": "2026-07-20T09:04:00+07:00",
+      "gradedAt": "2026-07-20T09:04:03+07:00"
+    }
+  ],
+  "scanJobs": []
+}

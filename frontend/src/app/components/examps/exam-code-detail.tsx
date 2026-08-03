@@ -29,9 +29,10 @@ interface IProps {
     exam: IAnswer;
     examCode: string;
     templateId: string;
+    targetClass: IClassRoom | null;
 }
 
-const ExamCodeDetail = ({ exam: answerKey, examCode, templateId }: IProps) => {
+const ExamCodeDetail = ({ exam: answerKey, examCode, templateId, targetClass }: IProps) => {
     const router = useRouter();
 
     const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -176,6 +177,7 @@ const ExamCodeDetail = ({ exam: answerKey, examCode, templateId }: IProps) => {
                         <RenderUploadImage
                             templateId={templateId}
                             answerKeys={{ [examCode]: answerKey }}
+                            targetClass={targetClass}
                         />
                         {/* Danh sách ảnh */}
 

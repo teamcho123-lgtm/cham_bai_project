@@ -56,6 +56,17 @@ const showActionListExamps = (props: IProps) => {
 
     const templates = [
         {
+            id: "template-000",
+            name: "Mẫu App5 - Phiếu OMR B",
+            image: "/Image/image.png",
+
+            mcq: 40,
+            tf: 8,
+            essay: 12,
+
+            detector: "app"
+        },
+        {
             id: "template-001",
             name: "Mẫu App1 - THPT Quốc Gia",
             image: "/Image/image1.png",
@@ -103,17 +114,7 @@ const showActionListExamps = (props: IProps) => {
             detector: "app4"
         },
 
-        {
-            id: "template-005",
-            name: "Mẫu App5 - Phiếu OMR B",
-            image: "/Image/image.png",
 
-            mcq: 40,
-            tf: 8,
-            essay: 12,
-
-            detector: "app5"
-        }
     ];
 
     useEffect(() => {
@@ -258,6 +259,10 @@ const showActionListExamps = (props: IProps) => {
             "YYYY-MM-DDTHH:mm:ssZ"
         );
 
+        const isUpdate = listDefaultExams !== null;
+        const examId = isUpdate ? listDefaultExams.id : newExamId;
+        const answerSheetId = isUpdate ? listDefaultExams.id : examId;
+
         const dataNewLE = {
             id: newExamId,
             name: examName,
@@ -272,8 +277,9 @@ const showActionListExamps = (props: IProps) => {
         };
 
         const answerSheetData = {
-            id: `axams-${dataNewLE.id}`,
-            examId: exampModelSelect?.id,
+            id: answerSheetId,
+            templateId: exampModelSelect?.id,
+            classId: classroom.id,
             name: examName,
             description: "",
 
@@ -283,9 +289,10 @@ const showActionListExamps = (props: IProps) => {
             },
 
             questionCount: {
-                mcq: 0,
-                trueFalse: 0,
-                shortAnswer: 0,
+                mcq: exampModelSelect.mcq,
+                trueFalse: exampModelSelect.tf,
+                shortAnswer:
+                    exampModelSelect.essay,
             },
 
             answerKeys: {},
@@ -308,7 +315,7 @@ const showActionListExamps = (props: IProps) => {
         handleClose()
     }
 
-    // console.log(exampModelSelect)
+    // console.log(classroom.id)
 
 
     return (
@@ -351,3 +358,13 @@ const showActionListExamps = (props: IProps) => {
 }
 
 export default showActionListExamps;
+
+// 60038578
+// 73525912
+// 69017856
+// 72510513
+// 71290581
+// 30171135
+// 71387251
+// 22001162
+// 22110037

@@ -1,0 +1,44 @@
+# ===== Node =====
+node_modules/
+.npm
+*.log
+npm-debug.log*
+
+# ===== Next.js =====
+.next/
+out/
+build/
+.vercel
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# ===== Dữ liệu sinh ra khi chạy =====
+# Ảnh giáo viên tải lên và ảnh kết quả chấm.
+# Đây là dữ liệu runtime, không phải mã nguồn.
+backend/uploads/
+backend/results/
+backend/debug_omr/
+backend/warp_result.png
+
+# Lưu ý: backend/data/ được giữ lại trong git
+# để người khác clone về vẫn có ảnh mẫu chạy thử.
+
+# ===== IDE / hệ điều hành =====
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ===== Biến môi trường =====
+.env
+.env.local
+.env*.local

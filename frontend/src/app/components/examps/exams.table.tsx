@@ -34,34 +34,65 @@ interface IProps {
 
 const templates = [
     {
+        id: "template-000",
+        name: "Mẫu App5 - Phiếu OMR B",
+        image: "/Image/image.png",
+
+        mcq: 40,
+        tf: 8,
+        essay: 12,
+
+        detector: "app"
+    },
+    {
         id: "template-001",
         name: "Mẫu App1 - THPT Quốc Gia",
         image: "/Image/image1.png",
+
+        mcq: 40,
+        tf: 8,
+        essay: 6,
+
+        detector: "app1" // file xử lý
     },
 
     {
         id: "template-002",
         name: "Mẫu App2 - Đánh Giá Năng Lực",
         image: "/Image/image2.png",
+
+        mcq: 24,
+        tf: 6,
+        essay: 16,
+
+        detector: "app2"
     },
 
     {
         id: "template-003",
         name: "Mẫu App3 - Cuối Kỳ",
         image: "/Image/image3.png",
+
+        mcq: 120,
+        tf: 0,
+        essay: 0,
+
+        detector: "app3"
     },
 
     {
         id: "template-004",
         name: "Mẫu App4 - Phiếu OMR A",
         image: "/Image/image4.png",
+
+        mcq: 40,
+        tf: 8,
+        essay: 8,
+
+        detector: "app4"
     },
 
-    {
-        id: "template-005",
-        name: "Mẫu App5 - Phiếu OMR B",
-        image: "/Image/image.png",
-    }
+
 ];
 
 

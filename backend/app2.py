@@ -12,14 +12,9 @@ import cv2
 import numpy as np
 import math
 
-BASE_DIR = os.path.dirname(
-    os.path.abspath(__file__)
-)
+BASE_DIR = os.path.dirname( os.path.abspath(__file__))
 
-RESULT_FOLDER = os.path.join(
-    BASE_DIR,
-    "results"
-)
+RESULT_FOLDER = os.path.join( BASE_DIR, "results")
 
 
 def find_marker_in_roi(roi, offset_x=0, offset_y=0, win_name="ROI DEBUG", debug_mode = False):
@@ -56,6 +51,7 @@ def find_marker_in_roi(roi, offset_x=0, offset_y=0, win_name="ROI DEBUG", debug_
         circularity = 4 * math.pi * area / (peri*peri)
         roi = thresh[y:y+h, x:x+w]
         fill_ratio = cv2.countNonZero(roi) / float(w*h)
+        area_ratio = area / float(roi.shape[0] * roi.shape[1])
 
         # cx = x + w//2
         # cy = y + h//2
@@ -65,7 +61,7 @@ def find_marker_in_roi(roi, offset_x=0, offset_y=0, win_name="ROI DEBUG", debug_
         # if 3 <= len(approx) <= 10 and 0.5 <= ratio <= 2 and extent > 0.75 and circularity < 0.85:
         # if 1 <= len(approx) <= 10 and 0.5 <= ratio <= 2 and extent > 0.7 and circularity < 0.85 and fill_ratio > 0.4:
 
-        if 1 <= len(approx) <= 9 and extent > 0.65 :
+        if 4 <= len(approx) <= 8 and extent > 0.65 :
             
             cx = x + w//2
             cy = y + h//2
@@ -149,7 +145,7 @@ def read_bubbles(roi_img, cols):
     # gray = clahe.apply(gray)
     
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 31, 12)
+    thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 31, 13)
     
     # Vá các viền ô tròn bị đứt
     kernel = np.ones((3, 3), np.uint8)
@@ -192,7 +188,13 @@ def read_bubbles(roi_img, cols):
 
         # if len(xs) == 0:
         #     raise ValueError("Không tìm thấy bubble")
-
+        
+    if not bubble_centers:
+        raise ValueError(
+        "Không nhận diện được bubble "
+        "trong vùng SBD hoặc mã đề"
+    )
+        
     # 3. TÍNH KHUNG GRID
     lefts   = [cx - w//2 for (cx, cy), w, h in zip(bubble_centers, ws, hs)]
     rights  = [cx + w//2 for (cx, cy), w, h in zip(bubble_centers, ws, hs)]
@@ -326,7 +328,11 @@ def read_part1(part1_roi, rows, cols, answer_key_1, img=None, offset_x=0, offset
             cy = y + h//2
             # cv2.putText(part1_roi,f"{int(peri)}",(x, y-3),cv2.FONT_HERSHEY_SIMPLEX,0.4,(0,0,255),1)
             bubbles.append((cx,cy,w,h))
-            
+    
+    if not bubbles:
+        raise ValueError(
+        "Không nhận diện được bubble "
+    )     
 
     lefts   = [cx-w//2 for cx,cy,w,h in bubbles]
     rights  = [cx+w//2 for cx,cy,w,h in bubbles]
@@ -764,7 +770,7 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
     avg_w = int(np.median([w for _,_,w,_ in bubbles]))
 
     for r, cy in enumerate(rows_y):
-
+    
         row_answer = []
 
         best_fill = 0
@@ -804,6 +810,7 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
 
             if marked:
                 color = (0,255,0)
+                
                 # dấu âm
                 if r == 0:
                     minus = True
@@ -878,8 +885,7 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
                 correct_points.append((cols_x[comma_index], rows_y[1], radius))
 
         else:
-            print(
-                "Không thể đánh dấu dấu phẩy:",
+            print("Không thể đánh dấu dấu phẩy:",
                 {
                     "correct_answer": correct_answer,
                     "comma_index": comma_index,
@@ -927,7 +933,7 @@ def crop_relative(img, roi):
 #     file_name = os.path.basename(file_path)
 #     print("anh ", file_name)
 
-def detect(image_path, answer_keys, debug_mode=False):
+def detect(image_path, answer_keys=None, debug_mode=False):
     global warp
 
     img_original = cv2.imread(image_path)
@@ -1012,6 +1018,7 @@ def detect(image_path, answer_keys, debug_mode=False):
     # ==========================================
     # PHÂN LUỒNG LOGIC: 4 ĐIỂM vs 3 ĐIỂM
     # ==========================================
+    
 
     TL = find_marker_in_roi( roi_tl, margin, margin, "ROI TL DEBUG", debug_mode)
 
@@ -1021,15 +1028,19 @@ def detect(image_path, answer_keys, debug_mode=False):
 
     BR = find_marker_in_roi( roi_br, W - roi_w - margin, H - roi_h - margin, "ROI BR DEBUG", debug_mode)
 
-    # print("TL =", TL)
-    # print("TR =", TR)
-    # print("BL =", BL)
-    # print("BR =", BR)
+    if any(point is None for point in [TL, TR, BL, BR]):
+        raise ValueError("Không tìm đủ 4 marker")
 
-    # print("top =", dist(TL,TR))
-    # print("bottom =", dist(BL,BR))
-    # print("left =", dist(TL,BL))
-    # print("right =", dist(TR,BR))
+    top = dist(TL, TR)
+    bottom = dist(BL, BR)
+    left = dist(TL, BL)
+    right = dist(TR, BR)
+
+    if not 0.75 <= top / bottom <= 1.25:
+        raise ValueError("Hai cạnh ngang không cân đối")
+
+    if not 0.75 <= left / right <= 1.25:
+        raise ValueError("Hai cạnh dọc không cân đối")
 
     for p in [TL,TR,BL,BR]:
         if p is not None:

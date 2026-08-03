@@ -38,14 +38,30 @@ const ExamCodePage = async ({ params }: IPageProps) => {
         }
     );
 
+
+
     if (!res.ok) {
         return <div>Không tìm thấy đợt thi {id}</div>;
     }
 
     const answerSheet: IAnswerSheetTemplate = await res.json();
     const answerKey = answerSheet.answerKeys?.[examId];
-    const templateId = Object.entries(answerSheet)[5][1];
-    console.log(templateId)
+    const templateId = Object.entries(answerSheet)[1][1];
+    const ClassId = Object.entries(answerSheet)[2][1];
+
+    console.log(ClassId)
+
+    const resClass = await fetch(`http://localhost:8000/classes/${ClassId}`,
+        {
+            cache: "no-store",
+        }
+    );
+
+    if (!resClass.ok) {
+        return <div>Không tìm thấy lớp thi {id}</div>;
+    }
+
+    const targetClass: IClassRoom = await resClass.json();
 
     if (!answerKey) {
         return (
@@ -55,11 +71,14 @@ const ExamCodePage = async ({ params }: IPageProps) => {
         );
     }
 
+    console.log(templateId)
+
     return (
         <ExamCodeDetail
             exam={answerKey}
             examCode={examId}
             templateId={templateId}
+            targetClass={targetClass}
         />
     );
 };

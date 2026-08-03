@@ -4,6 +4,7 @@ import { Image, Table, Tag, type TableColumnsType, } from "antd";
 import { UploadCloud } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "react-toastify";
+import * as XLSX from "xlsx";
 
 type ImageStatus =
     | "Chưa chấm"
@@ -64,6 +65,7 @@ interface IGradeResponse {
 interface IProps {
     templateId: string;
     answerKeys: Record<string, IAnswer>;
+    targetClass: IClassRoom | null;
 }
 
 interface IShortAnswerDetail {
@@ -88,18 +90,18 @@ interface IAnswer {
 }
 
 
-const RenderUploadImage = ({ templateId, answerKeys }: IProps) => {
+const RenderUploadImage = ({ templateId, answerKeys, targetClass }: IProps) => {
     const [imageRows, setImageRows] = useState<IImageRow[]>([]);
 
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-    /**
-     * Cập nhật kết quả main.py trả về vào bảng.
-     */
+
     const updateGradeResult = (
         gradeResults: IGradeResult[]
     ) => {
         setImageRows((previousRows) =>
+
+
             previousRows.map((row, index) => {
 
                 const gradeResult = gradeResults.find((item) => item.index === index);
@@ -108,6 +110,8 @@ const RenderUploadImage = ({ templateId, answerKeys }: IProps) => {
                     return { ...row, status: "Lỗi", };
                 }
 
+                const matchedStudent = targetClass?.students.find((stu) => stu.sbd == gradeResult.data?.stuCode);
+
                 return {
                     ...row,
 
@@ -115,7 +119,7 @@ const RenderUploadImage = ({ templateId, answerKeys }: IProps) => {
 
                     examCode: gradeResult.data.examCode ?? "",
 
-                    name: gradeResult.data.name ?? "",
+                    name: matchedStudent?.name ?? "",
 
                     correctAnswers: gradeResult.data.correctAnswers ?? 0,
 
@@ -131,9 +135,9 @@ const RenderUploadImage = ({ templateId, answerKeys }: IProps) => {
         );
     };
 
-    /**
-     * Chọn ảnh từ máy và đưa vào bảng.
-     */
+    console.log(targetClass)
+
+
     const handleUploadFile = (
         event: React.ChangeEvent<HTMLInputElement>
     ) => {
@@ -164,20 +168,15 @@ const RenderUploadImage = ({ templateId, answerKeys }: IProps) => {
             const newRows: IImageRow[] =
                 validFiles.map((file, index) => ({
                     id: `${Date.now()}-${file.name}-${index}`,
-
-                    index:
-                        previousRows.length + index,
-
+                    index: previousRows.length + index,
                     file,
 
-                    previewUrl:
-                        URL.createObjectURL(file),
+                    previewUrl: URL.createObjectURL(file),
 
                     stuCode: "",
                     examCode: "",
                     name: "",
 
-                    // Chưa chấm nên chưa có ảnh kết quả
                     fileAnswer: null,
 
                     correctAnswers: 0,
@@ -197,9 +196,7 @@ const RenderUploadImage = ({ templateId, answerKeys }: IProps) => {
         event.target.value = "";
     };
 
-    /**
-     * Xóa tất cả ảnh đã chọn.
-     */
+
     const handleRemoveAllImages = () => {
         imageRows.forEach((row) => {
             URL.revokeObjectURL(
@@ -208,6 +205,7 @@ const RenderUploadImage = ({ templateId, answerKeys }: IProps) => {
         });
 
         setImageRows([]);
+
     };
 
     const handleSubmitGrade = async () => {
@@ -415,6 +413,68 @@ const RenderUploadImage = ({ templateId, answerKeys }: IProps) => {
         },
     ];
 
+
+    // console.log(imageRows)
+    const handleCreateExcelFile = () => {
+        const gradedRows = imageRows.filter(
+            (row) => row.name !== ""
+        ).filter(
+            (row, index, rows) =>
+                index === rows.findIndex(
+                    (item) =>
+                        String(item.stuCode).trim() ===
+                        String(row.stuCode).trim()
+                )
+        );
+
+        if (gradedRows.length === 0) {
+            toast.warning("Chưa có kết quả chấm để xuất Excel");
+            return;
+        }
+
+        const excelData = gradedRows.map(
+            (row, index) => ({
+                "STT": index + 1,
+
+                "Số báo danh":
+                    row.stuCode || "",
+
+                "Họ và tên":
+                    row.name || "",
+
+                "Mã đề":
+                    row.examCode || "",
+
+                "Số câu đúng":
+                    row.correctAnswers,
+
+                "Số câu sai":
+                    row.inCorrectAnswers,
+
+                "Điểm":
+                    row.score,
+            })
+        );
+        console.log(excelData)
+
+        const workSheet = XLSX.utils.json_to_sheet(excelData)
+        workSheet["!cols"] = [
+            { wch: 8 },   // STT
+            { wch: 18 },  // Số báo danh
+            { wch: 30 },  // Họ và tên
+            { wch: 15 },  // Mã đề
+            { wch: 15 },  // Số câu đúng
+            { wch: 15 },  // Số câu sai
+            { wch: 12 },  // Điểm
+        ];
+        workSheet["!autofilter"] = { ref: `A1:G${excelData.length + 1}`, };
+        const workBook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workBook, workSheet, "Kết quả chấm");
+        const currentDate = new Date().toISOString().slice(0, 10);
+        XLSX.writeFile(workBook, `ket-qua-cham-${currentDate}.xlsx`)
+        toast.success(`Đã xuất ${gradedRows.length} kết quả`);
+    }
+
     return (
         <>
             {/* Khu vực chọn ảnh */}
@@ -492,6 +552,19 @@ const RenderUploadImage = ({ templateId, answerKeys }: IProps) => {
                             className="bg-pink-400 hover:bg-pink-500 text-white px-4 py-1.5 rounded-lg font-medium transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? "Đang chấm..." : "Chấm bài"}
+                        </button>
+
+                        <button
+                            style={{ cursor: "pointer" }}
+                            disabled={
+                                imageRows.length === 0 ||
+                                isSubmitting
+                            }
+                            type="button"
+                            onClick={handleCreateExcelFile}
+                            className=" bg-green-600 hover:bg-green-700 text-white  px-4 py-1.5 rounded-lg font-medium transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Xuất Excel
                         </button>
                     </div>
                 </div>

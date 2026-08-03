@@ -138,7 +138,7 @@ export const handleCreateExamInClassAction = async (data: any, answerSheetData: 
 
         const resAnswer = await fetch("http://localhost:8000/answerSheetTemplates", {
             method: "POST",
-            body: JSON.stringify(data),
+            body: JSON.stringify(answerSheetData),
             headers: {
                 "Content-Type": "application/json"
             }

@@ -78,9 +78,10 @@ const ShowExamsCode = (props: IAnswerSheetTemplates) => {
             }) => (
                 <div className="space-y-4">
                     <div>
-                        <div className="flex gap-2 mt-1" style={{ display: "flex", justifyContent: "center" }}>
+                        <div className="flex flex-wrap gap-2 mt-1" style={{ display: "flex", flexWrap: "wrap", justifyContent: "center" }}>
                             {Object.entries(record.answers.mcq ?? {}).map(([question, answer]) => (
-                                <span key={question} className="text-xs px-1 py-1 rounded-md bg-pink-50 text-pink-900">{question} : {answer}</span>))}
+                                <span key={question} className="text-xs px-1 py-1 rounded-md bg-pink-50 text-pink-900">{question}{answer}</span>
+                            ))}
                         </div>
                     </div>
                     <div>

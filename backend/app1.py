@@ -6,16 +6,101 @@ import glob
 import numpy as np
 from function.clamp import clamp
 from function.warp_paper import warp_paper
-from function.read_bubbles import read_bubbles
 from function.dist import dist
-from function.find_marker_in_roi import find_marker_in_roi
+
+from function.wrinkle_detector import (
+    cluster_points_by_y,
+    find_side_square_markers,
+    pair_side_markers,
+    detect_wrinkled_paper,
+)
 
 # pip install opencv-python
 # pip install numpy
 
 from models.bai_thi import BaiThi
 
+BASE_DIR = os.path.dirname( os.path.abspath(__file__))
+
+RESULT_FOLDER = os.path.join( BASE_DIR, "results")
+
 # 0.HÀM CHUẨN BỊ
+
+def find_marker_in_roi(roi, offset_x=0, offset_y=0, win_name="ROI DEBUG", debug_mode=False):
+    
+    gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+
+    blur = cv2.GaussianBlur(gray, (5,5), 0)
+
+    thresh = cv2.adaptiveThreshold( blur,255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 41, 7)
+
+    # kernel = np.ones((5, 5), np.uint8) 
+    # closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+
+    cnts, _ = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    best = None
+    best_area = 0
+    debug = roi.copy()
+
+    for c in cnts:
+
+        peri = cv2.arcLength(c, True)
+
+        if peri == 0:
+            continue
+
+        approx = cv2.approxPolyDP(c, 0.025 * peri, True)
+
+        area = cv2.contourArea(c)
+
+        if area < 200 or area > 1000:
+            continue
+
+        x,y,w,h = cv2.boundingRect(c)
+
+        if h == 0:
+            continue
+
+        ratio = w / float(h)
+
+        extent = area / float(w*h)
+
+        circularity = 4 * math.pi * area / (peri*peri)
+
+        roi = thresh[y:y+h, x:x+w]
+
+        fill_ratio = cv2.countNonZero(roi) / float(w*h)
+        
+        # if 3 <= len(approx) <= 10 and 0.5 <= ratio <= 2 and extent > 0.75 and circularity < 0.85:
+        # if 1 <= len(approx) <= 10 and 0.5 <= ratio <= 2 and extent > 0.7 and circularity < 0.85 and fill_ratio > 0.4:
+
+        if 4 <= len(approx) <= 9 and 0.9 <= ratio <= 2  and extent > 0.7 and circularity < 0.85 and fill_ratio > 0.4:
+            cv2.drawContours(debug,[c],-1,(0,255,0),2)
+
+            cx = x + w//2
+            cy = y + h//2
+
+            cv2.circle(debug,(cx,cy),5,(0,0,255),-1)
+
+            if area > best_area:
+
+                M = cv2.moments(c)
+
+                if M["m00"] == 0:
+                    continue
+
+                cx = int(M["m10"]/M["m00"])
+                cy = int(M["m01"]/M["m00"])
+
+                best = (
+                    cx + offset_x,
+                    cy + offset_y
+                )
+
+                best_area = area
+    return best
+
 def grade_answers(student_answers, answer_key):
 
     score = 0
@@ -38,8 +123,125 @@ def grade_answers(student_answers, answer_key):
 
     return score, details
 
+def read_bubbles(roi_img, cols, timing_rows):
+    rows = len(timing_rows)
+    img_result = roi_img.copy()
+    selected_points = []
+    
+    # 1. TIỀN XỬ LÝ (Đã lắp CLAHE trị bóng râm)
+    gray = cv2.cvtColor(roi_img, cv2.COLOR_BGR2GRAY)
+    
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    gray = clahe.apply(gray)
+    
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 31, 11)
+    
+    # Vá các viền ô tròn bị đứt
+    kernel = np.ones((3, 3), np.uint8)
+    thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+
+    # 2. TÌM TẤT CẢ CÁC Ô TRÒN CHƯA TÔ
+    contours, _ = cv2.findContours(thresh.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    
+    xs, ys, ws, hs = [], [], [], []
+    bubble_centers = []
+    
+    for c in contours:
+        x, y, w, h = cv2.boundingRect(c)
+        area = cv2.contourArea(c)
+        aspect_ratio = w / float(h) if h != 0 else 0
+        
+        if 20 < area < 400 and 0.9 < aspect_ratio < 1.3:
+            xs.append(x)
+            ys.append(y)
+            ws.append(w)
+            hs.append(h)
+            
+            cx = x + w//2
+            cy = y + h//2
+
+            bubble_centers.append((cx, cy))
+
+    if len(xs) < cols * rows * 0.3:
+        raise ValueError(f"Lỗi: Không tìm thấy đủ ô tròn để định vị lưới! (Tìm thấy {len(xs)})")
+
+    # 3. CHỐT TRỤC NGANG (X)
+    min_x, min_y = min(xs), min(ys)
+    max_x = max([x + w for x, w in zip(xs, ws)])
+    max_y = max([y + h for y, h in zip(ys, hs)])
+
+    avg_w = sum(ws) / len(ws)
+    pad_x = int(avg_w * 0.2)
+
+    grid_x = min_x - pad_x
+    grid_w = (max_x - min_x) + (pad_x * 2)
+    cell_w = grid_w / cols
+
+    # Vẽ khung Xanh Dương
+    cv2.rectangle(img_result, (grid_x, min_y - 10), (grid_x + grid_w, max_y + 10), (255, 0, 0), 1)
+
+    # for cx, cy in bubble_centers:
+    #     cv2.circle(img_result,(cx, cy),3,(0,255,0),-1)
+
+    # 4. CHỐT TRỤC DỌC (Y) BẰNG THUẬT TOÁN "NAM CHÂM"
+    roi_rows = sorted(timing_rows)
+    real_rows = []
+
+    for y_est in roi_rows:
+        near_y = []
+        for bx, by in bubble_centers:
+            # Lọc các ô tròn gần đường chuẩn y_est
+            if abs(by - y_est) < 15:
+                near_y.append(by)
+
+        if len(near_y) > 0:
+            # DÙNG MEDIAN (Trung vị) để kháng nhiễu rác thay vì Mean
+            real_rows.append(int(np.median(near_y)))
+        else:
+            real_rows.append(y_est)
+
+    roi_rows = real_rows
+    result_str = ""
+
+    # 5. CHẤM ĐIỂM
+    for i in range(cols):
+        pixels_count = []
+        col_centers = []
+        cx = int(grid_x + i * cell_w + cell_w/2)
+
+        for cy in roi_rows:
+            radius = int(cell_w * 0.30)
+            col_centers.append((cx, cy, radius))
+
+            mask = np.zeros(thresh.shape, dtype=np.uint8)
+            cv2.circle(mask, (cx, cy), radius, 255, -1)
+            
+            bubble_region = cv2.bitwise_and(thresh, mask)
+            filled_pixels = cv2.countNonZero(bubble_region)
+            pixels_count.append(filled_pixels)
+
+            cv2.circle(img_result, (cx, cy), radius, (0, 0, 255), 2)
+        
+        marked_index = np.argmax(pixels_count)
+        max_pixels = pixels_count[marked_index]
+        min_ink_required = np.pi * radius * radius * 0.20
+
+        if max_pixels > min_ink_required:
+            result_str += str(marked_index)
+            cx, cy, r = col_centers[marked_index]
+
+            selected_points.append((cx, cy, r))
+            cv2.circle(img_result, (cx, cy), r, (0, 255, 0), 4)
+        else:
+            result_str += "?"
+
+    return result_str, img_result, selected_points
+
 def read_part1(part1_roi, rows, cols, answer_key_1, img=None, offset_x=0, offset_y=0, start_question=1):
 
+    H, W = part1_roi.shape[:2]
+    
     selected_points = []
 
     debug = part1_roi.copy()
@@ -196,7 +398,18 @@ def read_part1(part1_roi, rows, cols, answer_key_1, img=None, offset_x=0, offset
             student_answer = letters[best_col]
 
             correct_answer = answer_key_1.get(str(question_no))
-
+            
+            if correct_answer is None:
+                correct_answer = answer_key_1.get(question_no)
+                
+            if isinstance(correct_answer, dict):
+                correct_answer = correct_answer.get("answer")
+                
+            if correct_answer is None:
+                continue
+                
+            correct_answer = str(correct_answer).strip().upper()
+            
             is_correct = (student_answer == correct_answer)
 
             correct_col = letters.index(correct_answer)
@@ -217,7 +430,7 @@ def read_part1(part1_roi, rows, cols, answer_key_1, img=None, offset_x=0, offset
     return answers, debug, selected_points
 
 def build_part2_grid(block_img , answer_key_2, cols=4, start_question = 1):
-
+    
     selected_points = []
 
     correct_points = []
@@ -225,8 +438,8 @@ def build_part2_grid(block_img , answer_key_2, cols=4, start_question = 1):
     debug = block_img.copy()
 
     gray = cv2.cvtColor(block_img, cv2.COLOR_BGR2GRAY)
-
-    thresh = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,31,10)
+    
+    thresh = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,41,19)
 
     kernel = np.ones((3,3), np.uint8)
 
@@ -261,8 +474,8 @@ def build_part2_grid(block_img , answer_key_2, cols=4, start_question = 1):
             cx = x + w//2
             cy = y + h//2
             
-            if not ( cy < 0.95*H):
-                continue
+            # if not ( cy < 0.95*H):
+            #     continue
 
             bubbles.append((cx,cy,w,h))
 
@@ -271,8 +484,8 @@ def build_part2_grid(block_img , answer_key_2, cols=4, start_question = 1):
     for cx,cy,w,h in bubbles:
         bubble_points.append((cx,cy))
 
-    print("Tong contour =", len(cnts))
-    print("Tong bubble =", len(bubbles))
+    # print("Tong contour =", len(cnts))
+    # print("Tong bubble =", len(bubbles))
 
     if len(bubbles) == 0:
         raise Exception("Không tìm thấy bubble")
@@ -290,7 +503,7 @@ def build_part2_grid(block_img , answer_key_2, cols=4, start_question = 1):
 
     avg_w = int(np.median([w for _,_,w,_ in bubbles]))
 
-    pad = int(avg_w * 0.6)
+    pad = int(avg_w * 0.55)
 
     grid_x1 -= pad
     grid_x2 += pad
@@ -314,10 +527,10 @@ def build_part2_grid(block_img , answer_key_2, cols=4, start_question = 1):
 
     # print("rows_y =", rows_y)
 
-    # for cx,cy,w,h in bubbles:
-    #     cv2.circle(debug,(cx,cy),3,(0,0,255),-1)
-    #     print(cx,cy,w,h)
-    # cv2.rectangle(debug, (grid_x1,grid_y1), (grid_x2,grid_y2), (255,0,0),2)
+    for cx,cy,w,h in bubbles:
+        cv2.circle(debug,(cx,cy),3,(0,0,255),-1)
+        # print(cx,cy,w,h)
+    cv2.rectangle(debug, (grid_x1,grid_y1), (grid_x2,grid_y2), (255,0,0),2)
     # cols = 4
 
     grid_w = grid_x2 - grid_x1
@@ -342,9 +555,9 @@ def build_part2_grid(block_img , answer_key_2, cols=4, start_question = 1):
         question1 = start_question
         question2 = start_question + 1
 
-        print("question1 =", question1)
-        print("question2 =", question2)
-        print(answer_key_2.keys())
+        # print("question1 =", question1)
+        # print("question2 =", question2)
+        # print(answer_key_2.keys())
 
         choice = choices[r]
 
@@ -352,7 +565,7 @@ def build_part2_grid(block_img , answer_key_2, cols=4, start_question = 1):
 
             cx = int(grid_x1 + (c + 0.5) * cell_w)
 
-            radius = int(avg_w * 0.45)
+            radius = int(avg_w * 0.35)
 
             mask = np.zeros(thresh.shape,dtype=np.uint8)
 
@@ -387,7 +600,7 @@ def build_part2_grid(block_img , answer_key_2, cols=4, start_question = 1):
                 correct_points.append((cx, cy, radius))
 
             # tô > 35%
-            marked = ratio_fill > 0.6
+            marked = ratio_fill > 0.3
 
             row_answer.append(marked)
 
@@ -409,7 +622,6 @@ def build_part2_grid(block_img , answer_key_2, cols=4, start_question = 1):
 
                     is_correct = answer_key_2[str(question2)].get(choice, False)
 
-
                 elif c == 3:
                     q2_row = "S"
 
@@ -422,11 +634,8 @@ def build_part2_grid(block_img , answer_key_2, cols=4, start_question = 1):
             cv2.circle(debug,(cx,cy),radius,color,2)
             # cv2.putText(debug,f"{ratio_fill:.2f}",(cx-15, cy-10),cv2.FONT_HERSHEY_SIMPLEX,0.4,(255,0,0),1)
 
-        answers[question1][r] = q1_row
-        answers[question2][r] = q2_row
-        
-        
-
+        answers[question1][choice] = q1_row
+        answers[question2][choice] = q2_row
             
     return answers, debug, selected_points, correct_points
 
@@ -438,7 +647,7 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
 
     gray = cv2.cvtColor(block_img, cv2.COLOR_BGR2GRAY)
 
-    thresh = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,31,10)
+    thresh = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,41,10)
 
     kernel = np.ones((3,3), np.uint8)
 
@@ -532,6 +741,7 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
     comma_pos = -1
 
     avg_w = int(np.median([w for _,_,w,_ in bubbles]))
+    
 
     for r, cy in enumerate(rows_y):
 
@@ -544,7 +754,7 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
 
         for c, cx in enumerate(cols_x):
 
-            radius = int(avg_w * 0.45)
+            radius = int(avg_w * 0.35)
 
             mask = np.zeros(thresh.shape,dtype=np.uint8)
 
@@ -565,7 +775,7 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
             ratio_fill = filled / area_circle
 
             # tô > 35%
-            marked = ratio_fill > 0.6
+            marked = ratio_fill > 0.3
 
             row_answer.append(marked)
 
@@ -600,21 +810,78 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
         if minus:
             answer_str = "-" + answer_str
 
-        correct_answer = answer_key_3[str(question_no)]
+        correct_data  = answer_key_3[str(question_no)]
+        
+        # Không có đáp án thì bỏ qua câu
+        if correct_data is None:
+            print(
+                f"Bỏ qua câu Phần III "
+                f"{question_no}: "
+                "không có đáp án chuẩn"
+            )
 
-        is_correct = (answer_str == correct_answer)
+            is_correct = False
+
+        else:
+
+            if isinstance( correct_data, dict):
+                accepted_answers = (correct_data.get( "acceptedAnswers") or [correct_data.get("answer")]
+                )
+
+            else:
+                accepted_answers = [
+                    correct_data
+                ]
+
+            def normalize_short_answer(
+                value
+            ):
+                return str(
+                    value
+                ).strip().replace(
+                    ".",
+                    ","
+                )
+
+            student_value = (
+                normalize_short_answer(
+                    answer_str
+                )
+            )
+
+            accepted_values = {
+                normalize_short_answer(
+                    value
+                )
+                for value in accepted_answers
+                if value is not None
+            }
+
+            is_correct = (
+                student_value
+                in accepted_values)
+
 
     return answer_str, debug, selected_points, is_correct
 
-# img_original  = cv2.imread(r'C:\Users\Admin\Downloads\Project_1\backend\data\ptn3.png')
+# img_original  = cv2.imread(r'C:\Users\Admin\Downloads\Project_1\backend\data\data1 31-7-2026\IMG_8052.JPEG')
 
-folder = r"C:\Users\Admin\Downloads\Project_1\backend\data\data1"
-image_files = []
-image_files.extend(glob.glob(os.path.join(folder, "*.png")))
-for file_path in image_files:
-    img_original = cv2.imread(file_path)
-    # print(file_name)
+# folder = r"C:\Users\Admin\Downloads\Project_1\backend\data\data1 31-7-2026"
+# image_files = []
+# image_files.extend(glob.glob(os.path.join(folder, "*.JPEG")))
+# for file_path in image_files:
+#     img_original = cv2.imread(file_path)
+#     file_name = os.path.basename(file_path)
+#     print("anh ", file_name)
+    
+def detect(image_path, answer_keys=None, debug_mode=False):
+    global warp
+    
+    img_original = cv2.imread(image_path)
 
+    if img_original is None:
+        raise ValueError( f"Không đọc được ảnh: {image_path}")
+    
     img = img_original.copy()   # xử lý
     img_debug   = img_original.copy()   # vẽ debug
 
@@ -632,14 +899,6 @@ for file_path in image_files:
 
     edged = cv2.Canny(thresh, 75, 200)
 
-    cv2.imshow('2. Canny Edges', edged)
-
-    cv2.namedWindow('Canny Edges', cv2.WINDOW_NORMAL)
-
-    cv2.resizeWindow('Canny Edges', 600, 800)
-
-    cv2.imshow('Canny Edges', edged)
-
     H, W = img.shape[:2]
 
     roi_size = int(min(W, H) * 0.25)  # 25% cạnh ngắn
@@ -651,7 +910,6 @@ for file_path in image_files:
         margin : margin + roi_size,
         margin : margin + roi_size
     ]
-    cv2.imshow("ROI TL", roi_tl)
 
     # TR
     cv2.rectangle( img, (W - roi_size - margin, margin), (W - margin, roi_size + margin), (0,255,0),4)
@@ -659,7 +917,6 @@ for file_path in image_files:
         margin : margin + roi_size,
         W-roi_size-margin : W-margin
     ]
-    cv2.imshow("ROI TR", roi_tr)
 
     # BL
     cv2.rectangle( img, (margin, H - roi_size - margin), (roi_size + margin, H - margin), (0,255,0), 4)
@@ -667,7 +924,6 @@ for file_path in image_files:
         H-roi_size-margin : H-margin,
         margin : margin+roi_size
     ]
-    cv2.imshow("ROI BL", roi_bl)
 
     # BR
     cv2.rectangle( img, (W - roi_size - margin, H - roi_size - margin), (W - margin, H - margin), (0,255,0), 4)
@@ -675,26 +931,15 @@ for file_path in image_files:
         H-roi_size-margin : H-margin,
         W-roi_size-margin : W-margin
     ]
-    cv2.imshow("ROI BR", roi_br)
-
-    cv2.imshow("4 ROI Corners", img)
 
     _, thresh = cv2.threshold(blurred, 150, 255, cv2.THRESH_BINARY_INV)
-
-    cv2.imshow('2. Canny Edges', edged )
-
 
     # 1. FIX: Dùng RETR_EXTERNAL để chỉ lấy viền ngoài cùng, tránh viền lồng nhau
     contours, _ = cv2.findContours(edged.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     print(f'Found {len(contours)} contours in the image.')
 
-    img_markers = img.copy()
     markers = [] # Mảng chứa các điểm neo (Vuông)
-    marker_centers_unique = [] # Mảng chứa tâm điểm neo đã được lọc trùng lặp (nếu có)
-    bubbles = [] # Mảng chứa các ô đáp án (Tròn)
-    timing_marks = []   # các hình chữ nhật bên phải mã đề
-    id_boxes = []   # khung lớn SBD + Mã đề
 
     # 5. Lấy trọng tâm của các điểm neo và lọc trùng lặp
     pts = []
@@ -712,13 +957,13 @@ for file_path in image_files:
     # PHÂN LUỒNG LOGIC: 4 ĐIỂM vs 3 ĐIỂM
     # ==========================================
 
-    TL = find_marker_in_roi( roi_tl, margin, margin, "ROI TL DEBUG")
+    TL = find_marker_in_roi( roi_tl, margin, margin, "ROI TL DEBUG", debug_mode=False)
 
-    TR = find_marker_in_roi( roi_tr, W-roi_size-margin, margin, "ROI TR DEBUG")
+    TR = find_marker_in_roi( roi_tr, W-roi_size-margin, margin, "ROI TR DEBUG", debug_mode=False)
 
-    BL = find_marker_in_roi( roi_bl, margin,H-roi_size-margin, "ROI BL DEBUG")
+    BL = find_marker_in_roi( roi_bl, margin,H-roi_size-margin, "ROI BL DEBUG", debug_mode=False)
 
-    BR = find_marker_in_roi( roi_br, W-roi_size-margin, H-roi_size-margin, "ROI BR DEBUG")
+    BR = find_marker_in_roi( roi_br, W-roi_size-margin, H-roi_size-margin, "ROI BR DEBUG", debug_mode=False)
 
     print("TL =", TL)
     print("TR =", TR)
@@ -747,14 +992,10 @@ for file_path in image_files:
     ratio_w = top_width / (bottom_width + 1e-5)
     ratio_h = left_height / (right_height + 1e-5)
 
-    # if not (0.85 < ratio_w < 1.15 and 0.85 < ratio_h < 1.15):
-    #     raise Exception("Warp sai - form bị méo hoặc chọn sai marker")
 
     for p in src.astype(int):
         # Đổi sang màu Tím để bạn thấy rõ điểm nào vừa được "triệu hồi"
         cv2.circle(img, tuple(p), 15, (255, 0, 255), -1) 
-
-    cv2.imshow("Corners", img)
 
     print(f"Tọa độ 4 góc: TL={TL}, TR={TR}, BL={BL}, BR={BR}")
 
@@ -762,12 +1003,23 @@ for file_path in image_files:
     warp, M = warp_paper(img_original,TL,TR,BR,BL,out_w=1000,out_h=1400,expand=20,pad=30)
 
     # 8. MARKER ĐIỂM NEO VÀ CẮT ROI
+    wrinkle_result = detect_wrinkled_paper(
+        warp,
+        debug_mode=False
+    )
+
+    print("Trạng thái giấy:",wrinkle_result["status"])
+    statusPaper = 0
+    if wrinkle_result["status"] == "flat":
+        statusPaper = 10
+    else:
+        statusPaper = 16
 
     warp_gray = cv2.cvtColor(warp, cv2.COLOR_BGR2GRAY)
 
     warp_blur = cv2.GaussianBlur(warp_gray, (5,5), 0)
 
-    warp_thresh = cv2.adaptiveThreshold( warp_blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 31, 10)
+    warp_thresh = cv2.adaptiveThreshold( warp_blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 31, statusPaper)
 
     # warp_thresh = cv2.threshold(warp_blur, 150, 255, cv2.THRESH_BINARY_INV)
 
@@ -819,14 +1071,14 @@ for file_path in image_files:
         cy = y + h//2 + offset
 
         timing_rows.append(cy)
-        cv2.line( warp, (0,cy), (W,cy), (0,0,0),1)
+        # cv2.line( warp, (0,cy), (W,cy), (0,0,0),1)
 
     for i in range(len(timing_rows)-1):
 
         y1 = timing_rows[i]
         y2 = timing_rows[i+1]
 
-        cv2.line( warp, (0,y1), (W,y1), (255,0,255), 1)
+        # cv2.line( warp, (0,y1), (W,y1), (255,0,255), 1)
 
 
     timing_rows = sorted(timing_rows)
@@ -859,8 +1111,8 @@ for file_path in image_files:
     # MD
     # ===============================
 
-    md_x1 = int(mx1 - 4.8*marker_w)
-    md_x2 = int(mx1 + 0.1*marker_w)
+    md_x1 = int(mx1 -5.3*marker_w)
+    md_x2 = int(mx1 + marker_w)
 
     md_y1 = int(my1 + 0.1*marker_h)
     md_y2 = int(my2 + 0.15*marker_h)
@@ -888,7 +1140,7 @@ for file_path in image_files:
     # SBD
     # ===============================
 
-    sbd_x1 = int(mx1 - 13*marker_w)
+    sbd_x1 = int(mx1 - 14*marker_w )
     sbd_x2 = int(mx1 - 4.8*marker_w)
 
     sbd_y1 = int(my1 + 0.1*marker_h)
@@ -937,8 +1189,6 @@ for file_path in image_files:
 
         cv2.circle(img_kq,(wx, wy),r,(0,255,0),3)
 
-
-    cv2.imshow( "MA DE", md_vis)
     print(ma_de)
     # ===============================
     # ĐỌC SBD
@@ -961,27 +1211,34 @@ for file_path in image_files:
 
         cv2.circle(img_kq,(wx, wy),r,(0,255,0),3)
 
-    cv2.imshow("SBD RESULT",sbd_vis)
+    # Mã đề OpenCV đọc được
+    ma_de = str(ma_de)
 
+    # answer_keys do frontend gửi lên
+    md_answer_key = answer_keys.get( ma_de)
 
+    if md_answer_key is None:
+        raise ValueError(
+            f"Không có đáp án mã đề "
+            f"{ma_de} trong dữ liệu từ web"
+        )
 
-    with open("answers.json", "r", encoding="utf-8") as f:
-        exams = json.load(f)
+    # Phần I
+    answer_key_part1 = (md_answer_key.get("mcq",{}))
 
-    answer_key = exams.get(ma_de)
+    # Phần II:
+    # Hỗ trợ cả cấu trúc mới trueFalse
+    # và cấu trúc cũ tf
+    answer_key_2 = (
+        md_answer_key.get("trueFalse",md_answer_key.get("tf",{})))
 
-    if answer_key is None:
-        print("Không tìm thấy mã đề:", ma_de)
-        exit()
-
-    print("DAP AN")
-    print(exams)
-
-    md_answer_key =  exams[ma_de]
-    answer_key_part1 = md_answer_key['mcq']
-    answer_key_2 = md_answer_key['tf']
-    answer_key_3 = md_answer_key['essay']
-    print(answer_key_3)
+    # Phần III:
+    # Hỗ trợ cả shortAnswer và essay
+    answer_key_3 = (md_answer_key.get("shortAnswer",md_answer_key.get("essay",{})))
+    
+    correct_part1 = 0
+    correct_part2 = 0
+    correct_part3 = 0
 
     # ===============================
     # PHẦN 1
@@ -1072,12 +1329,6 @@ for file_path in image_files:
 
     # BL2, BR2 = bot_row
 
-    print("TL1 =", TL1)
-    print("TR1 =", TR1)
-
-    print("ML1  =", ML1)
-    print("MR1  =", MR1)
-
     shrink = 0
 
     src_part1 = np.float32([
@@ -1099,10 +1350,7 @@ for file_path in image_files:
 
     M1 = cv2.getPerspectiveTransform(src_part1, dst_part1)
 
-    M1_inv = cv2.getPerspectiveTransform(
-        dst_part1,
-        src_part1
-    )
+    M1_inv = cv2.getPerspectiveTransform( dst_part1, src_part1)
 
     part1_roi = cv2.warpPerspective(warp,M1,(w_part1, h_part1))
 
@@ -1115,9 +1363,6 @@ for file_path in image_files:
     cv2.line(warp,(TL1[0], TL1[1]),(ML1[0], ML1[1]),(0,255,0),2)
 
     cv2.line(warp,(TR1[0], TR1[1]),(MR1[0], MR1[1]),(0,255,0),2)
-
-    # Cắt ROI
-    cv2.imshow("PART1 ROI", part1_roi)
 
     h1, w1 = part1_roi.shape[:2]
 
@@ -1149,6 +1394,8 @@ for file_path in image_files:
         all_answers1.update(answers_part1)
 
         for q, ans, cx, cy, radius, is_correct, correct_cx, correct_cy  in selected_points_part1:
+            if is_correct:
+                correct_part1 += 1
 
             wx = int(part1_x + offset_x + cx)
             wy = int(part1_y + cy)
@@ -1167,7 +1414,6 @@ for file_path in image_files:
             
             color = (0,255,0) if is_correct else (0,0,255)
             
-
             cv2.circle(img_kq,(wx, wy),radius + 3,color,2)
 
             if not is_correct:
@@ -1185,11 +1431,7 @@ for file_path in image_files:
                 
                 cv2.circle(img_kq,(wx2, wy2),radius + 3,(0,255,0),2)
 
-        cv2.imshow(f"PART1_GRID_{i+1}",debug_part1)
-
     print(f"\n===== PART1 =====")
-    # print(all_answers1)
-
 
     # ===============================
     # PHẦN 2
@@ -1233,7 +1475,7 @@ for file_path in image_files:
 
         centers_1.append((cx,cy,x,y,w,h))
 
-        # cv2.circle(warp,(cx,cy),8,(0,255,255),-1)
+        cv2.circle(warp,(cx,cy),8,(0,255,255),-1)
 
     print("Tổng marker =",len(centers_1))
     print(centers_1)
@@ -1321,8 +1563,16 @@ for file_path in image_files:
 
     cv2.line(warp,(TR2[0], TR2[1]),(MR[0], MR[1]),(0,255,0),2)
 
-    # Cắt ROI
-    cv2.imshow("PART2 ROI", part2_roi)
+
+    h2, w2 = part2_roi.shape[:2]
+
+    left_crop = 15
+    right_crop = 15
+
+    part2_roi = part2_roi[
+        :,
+        left_crop:w2 - right_crop
+    ]
 
     h2, w2 = part2_roi.shape[:2]
 
@@ -1358,8 +1608,10 @@ for file_path in image_files:
         offset_x = i * roi_part2_chia
 
         for row, col, cx, cy, radius, is_correct  in selected_points_part2:
+            if is_correct:
+                correct_part2 += 1
 
-            px = cx + offset_x
+            px = cx + offset_x + left_crop
             py = cy
 
             pt = np.array([[[px, py]]], dtype=np.float32)
@@ -1382,7 +1634,7 @@ for file_path in image_files:
 
         for cx, cy, radius in correct_points_part2:
 
-            px = cx + offset_x
+            px = cx + offset_x + left_crop
             py = cy
 
             pt = np.array([[[px, py]]], dtype=np.float32)
@@ -1393,8 +1645,6 @@ for file_path in image_files:
             wy = int(real_pt[0][0][1])
 
             cv2.circle( img_kq,(wx, wy),radius + 3,(0,255,0),2)
-            
-        cv2.imshow(f"PART2_GRID_{i+1}",debug_part2)
 
     # Kết quả phần 2
     print("\n===== PART2 =====")
@@ -1488,7 +1738,15 @@ for file_path in image_files:
 
     cv2.line(warp,(MR[0], MR[1]),(BR2[0], BR2[1]),(0,255,0),2)
 
-    cv2.imshow("PART3 ROI", part3_roi)
+    h3, w3 = part3_roi.shape[:2]
+
+    left_crop = 15
+    right_crop = 15
+
+    part3_roi = part3_roi[
+        :,
+        left_crop:w3 - right_crop
+    ]
 
     h3, w3 = part3_roi.shape[:2]
 
@@ -1515,18 +1773,19 @@ for file_path in image_files:
             print("ROI RONG")
             continue
 
-        # cv2.imshow(f"BLOCK_{i+1}", roi_block_part3)
-
         all_part3_blocks.append(roi_block_part3)
 
-    all_ans_part3 = []
+    all_answers3 = {}
 
     for i, block_part3 in enumerate(all_part3_blocks):
         question_no = i + 1
 
         ans_part3, debug_part3, selected_points_part3, is_correct  = build_part3_grid(block_part3, answer_key_3, question_no)
 
-        offset_x = i * roi_part3_chia
+        if is_correct:
+            correct_part3 += 1
+        
+        offset_x = i * roi_part3_chia + left_crop
 
         for row, col, cx, cy, radius in selected_points_part3:
 
@@ -1545,48 +1804,169 @@ for file_path in image_files:
             cv2.circle(img_kq,(wx, wy),radius + 4, color, 2)
             # cv2.circle(img_kq,(wx, wy),8,(0,255,255),3)
 
-        cv2.imshow(f"PART3_GRID_{i+1}",debug_part3)
-
         # Kết quả phần 3
         print(f"\n===== PART3 BLOCK {i+1} =====")
         print(ans_part3)
-        all_ans_part3.append(ans_part3)
+        all_answers3[question_no] = ans_part3
+
+    # =====================================
+    # TÍNH KẾT QUẢ
+    # =====================================
+
+    correct_answers = (
+        correct_part1
+        + correct_part2
+        + correct_part3
+    )
+
+    total_part1 = len(
+        answer_key_part1
+    )
+
+    total_part2 = sum(
+        len(question_answers)
+        for question_answers
+        in answer_key_2.values()
+    )
+
+    total_part3 = len(
+        answer_key_3
+    )
+
+    total_answers = (
+        total_part1
+        + total_part2
+        + total_part3
+    )
+
+    incorrect_answers = max(
+        total_answers - correct_answers,
+        0
+    )
+
+    score = 0.0
+
+    if total_answers > 0:
+        score = round(
+            correct_answers
+            / total_answers
+            * 10,
+            2
+        )
 
 
+    # =====================================
+    # LƯU ẢNH KẾT QUẢ
+    # =====================================
+
+    os.makedirs(
+        RESULT_FOLDER,
+        exist_ok=True
+    )
+
+    original_file_name = os.path.basename(
+        image_path
+    )
+
+    file_name_without_extension = (
+        os.path.splitext(
+            original_file_name
+        )[0]
+    )
+
+    result_image_name = (
+        f"{file_name_without_extension}"
+        "-result.jpg"
+    )
+
+    result_image_path = os.path.join(
+        RESULT_FOLDER,
+        result_image_name
+    )
+
+    saved = cv2.imwrite(
+        result_image_path,
+        img_kq
+    )
+
+    if not saved:
+        raise ValueError(
+            "Không lưu được ảnh kết quả"
+        )
 
 
-    # ====== HIỂN THỊ ======
+    # =====================================
+    # TRẢ JSON CHO WEB
+    # =====================================
 
-    # cv2.namedWindow('1. Anh Goc', cv2.WINDOW_NORMAL)
-    # cv2.namedWindow('4. Tim Diem Neo va O Tron', cv2.WINDOW_NORMAL)
-    # cv2.namedWindow('5. Anh Warp', cv2.WINDOW_NORMAL)
+    return {
+        "stuCode": str(sbd1),
+        "examCode": str(ma_de),
 
-    # cv2.resizeWindow('1. Anh Goc', 600, 800)
-    # cv2.resizeWindow('4. Tim Diem Neo va O Tron', 600, 800)
-    # cv2.resizeWindow('5. Anh Warp', 600, 800)
+        "correctAnswers": int(
+            correct_answers
+        ),
 
-    # cv2.imshow('1. Anh Goc', img)
-    # cv2.imshow('4. Tim Diem Neo va O Tron', img_markers)
-    # cv2.imshow('5. Anh Warp', warp)
+        "inCorrectAnswers": int(
+            incorrect_answers
+        ),
 
-    # cv2.imshow("SBD ROI", sbd_roi)
-    # cv2.imshow("MA DE ROI", md_roi)
+        "score": float(score),
 
-    cv2.namedWindow('PHIEU THI DA DUOC TO', cv2.WINDOW_NORMAL)
-    cv2.resizeWindow('PHIEU THI DA DUOC TO', 800, 1000)
-    cv2.imshow('PHIEU THI DA DUOC TO', img_kq)
+        "answers": {
+            "mcq": {
+                str(question): answer
+                for question, answer
+                in all_answers1.items()
+            },
 
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+            "trueFalse": {
+                str(question): answer
+                for question, answer
+                in all_answers_part2.items()
+            },
 
-    # print(f"\n====== ALL ĐAP AN ========")
-    sbd = sbd1
-    md = ma_de
-    all_answers2 = all_answers_part2_last
-    all_answers3 = all_ans_part3
+            "shortAnswer": {
+                str(question): answer
+                for question, answer
+                in all_answers3.items()
+            }
+        },
 
-    print("SBD:",)
-    print("Mã đề:",md)
-    print(all_answers1)
-    print(all_answers2)
-    print(all_answers3)
+        "resultImageName":
+            result_image_name
+    }
+    
+if __name__ == "__main__":
+    
+    test_image_path = (
+        r"C:\Users\Admin\Downloads"
+        r"\Project_1\backend\data"
+        r"\data1 31-7-2026"
+        r"\IMG_8052.JPEG"
+    )
+
+    try:
+        result = detect(
+            test_image_path,
+            debug_mode=True
+        )
+
+        print(
+            json.dumps(
+                result,
+                ensure_ascii=False,
+                indent=4
+            )
+        )
+
+        cv2.waitKey(0)
+
+    except Exception as error:
+        print(
+            "Lỗi chạy model:",
+            str(error)
+        )
+
+    finally:
+        cv2.destroyAllWindows()
