@@ -183,17 +183,25 @@ export const handleCreateExamInClassAction = async (data: any, answerSheetData: 
     }
 }
 
-export const handleUpdateExamInClassAction = async (id: string, data: any) => {
+export const handleUpdateExamInClassAction = async (
+    id: string,
+    data: any,
+    answerSheetData?: any,
+) => {
     try {
+        // Bo id khoi body: id da nam tren URL, gui kem id (nhat la id moi)
+        // co the lam json-server doi/hong id cua ban ghi dang sua.
+        const { id: _examId, ...examPatch } = data;
+
         const res = await fetch(`http://localhost:8000/exams/${id}`, {
             method: "PATCH",
-            body: JSON.stringify(data),
+            body: JSON.stringify(examPatch),
             headers: {
                 "Content-Type": "application/json"
             }
         })
 
-        console.log("check data : ", data)
+        console.log("check data : ", examPatch)
 
         if (!res.ok) {
             const errorText = await res.text();
@@ -204,8 +212,44 @@ export const handleUpdateExamInClassAction = async (id: string, data: any) => {
 
             return {
                 success: false,
-                message: "Update danh sách lớp thất bại!",
+                message: "Update đợt thi thất bại!",
             };
+        }
+
+        // Mau phieu (answerSheetTemplates) dung chung id voi exam nhung KHAC
+        // schema, nen phai gui payload rieng - khong dung lai body cua exam.
+        // Neu khong cap nhat detector/questionCount thi khi doi mau de,
+        // templateId doi nhung cau hinh cham bai van la cua mau cu.
+        if (answerSheetData) {
+            // Bo answerKeys de khong xoa mat ma de/dap an da nhap truoc do,
+            // bo createdAt de giu nguyen thoi diem tao ban dau.
+            const {
+                id: _templateId,
+                answerKeys: _answerKeys,
+                createdAt: _createdAt,
+                ...templatePatch
+            } = answerSheetData;
+
+            const resTemplate = await fetch(`http://localhost:8000/answerSheetTemplates/${id}`, {
+                method: "PATCH",
+                body: JSON.stringify(templatePatch),
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            })
+
+            if (!resTemplate.ok) {
+                const errorText = await resTemplate.text();
+                console.log("PATCH template res.ok:", resTemplate.ok);
+                console.log("PATCH template status:", resTemplate.status);
+                console.log("PATCH template statusText:", resTemplate.statusText);
+                console.log("PATCH template response:", errorText);
+
+                return {
+                    success: false,
+                    message: "Update mẫu phiếu thất bại!",
+                };
+            }
         }
 
         updateTag("list-users")
@@ -213,7 +257,7 @@ export const handleUpdateExamInClassAction = async (id: string, data: any) => {
 
         return {
             success: true,
-            message: "Update danh sách lớp thành công!",
+            message: "Update đợt thi thành công!",
         };
 
     } catch (error) {

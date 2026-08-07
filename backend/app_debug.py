@@ -648,8 +648,8 @@ def build_part2_grid(block_img , answer_key_2, cols=4, start_question = 1):
             
     return answers, debug, selected_points, correct_points
 
-def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
-
+def build_part3_grid(block_img, answer_key_3, question_no, rows=12, cols=4):
+    
     selected_points = []
 
     correct_points = []
@@ -660,7 +660,7 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
 
     thresh = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,31,10)
 
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
+    kernel = np.ones((3,3), np.uint8)
 
     thresh = cv2.morphologyEx(thresh,cv2.MORPH_CLOSE,kernel)
 
@@ -690,12 +690,12 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
 
         ratio = w / float(h)
         # cv2.putText(block_img,f"{int(peri)}",(x, y-3),cv2.FONT_HERSHEY_SIMPLEX,0.4,(0,0,255),1)
-        if 0.8 < ratio < 1.66 and circularity > 0.8:
+        if 0.8 < ratio < 1.4 and circularity > 0.8:
 
             cx = x + w//2
             cy = y + h//2
             
-            cv2.circle(debug, (int(cx), int(cy)), 4, (0,0,255), -1)
+            # cv2.circle(debug, (int(cx), int(cy)), 4, (0,0,255), -1)
 
             bubbles.append((cx,cy,w,h))
 
@@ -751,14 +751,13 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
     comma_pos = -1
 
     avg_w = int(np.median([w for _,_,w,_ in bubbles]))
+    cols_chars = [""] * len(cols_x)
 
     for r, cy in enumerate(rows_y):
 
         row_answer = []
-
         best_fill = 0
         best_col = -1
-
         temp_data = []
 
         for c, cx in enumerate(cols_x):
@@ -777,28 +776,26 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
 
             if filled > best_fill:
                 best_fill = filled
-                best_col = c
 
             area_circle = np.pi * radius * radius
 
             ratio_fill = filled / area_circle
 
             # tô > 35%
-            marked = ratio_fill > 0.6
+            marked = ratio_fill > 0.65
 
             row_answer.append(marked)
 
             if marked:
                 color = (0,255,0)
-                # dấu âm
-                if r == 0:
-                    minus = True
-                # dấu phẩy
-                elif r == 1:
-                    comma_pos = c
-                # chữ số
+                if r == 0 and c == 0:
+                    cols_chars[c] = "-"
+                elif r == 0 and c == 1:
+                    cols_chars[c] = ","
+                elif r == 0 and c == 2:
+                    cols_chars[c] = ","
                 else:
-                    digits[c] = str(r - 2)
+                    cols_chars[c] = str(r - 1)
 
                 selected_points.append((r,c,cx,cy,radius))
             else:
@@ -808,16 +805,12 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
 
         result.append(row_answer)
 
-    answer_str = "".join(digits)
+    answer_str = "".join(cols_chars)
 
     if comma_pos != -1:
         answer_str = ( answer_str[:comma_pos]+ ","+ answer_str[comma_pos:])
     if minus:
         answer_str = "-" + answer_str
-
-    # ==========================
-    # Kiểm tra đáp án
-    # ==========================
 
     correct_answer = answer_key_3.get(str(question_no))
     if correct_answer is None:
@@ -827,36 +820,30 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
         is_correct = (answer_str == str(correct_answer))
 
     if not is_correct:
-
-        temp = str(correct_answer)
-
-        radius = int(avg_w*0.4)
-
-        # dấu âm
-        if temp.startswith("-"):
-            correct_points.append((cols_x[0],rows_y[0],radius))
-            temp = temp[1:]
-
-        # dấu phẩy
-        comma_index = -1
-
-        if "," in temp:
-            comma_index = temp.index(",")
-            temp = temp.replace(",","")
-            correct_points.append((cols_x[comma_index], rows_y[1], radius))
-
-
-        # các chữ số
-        for c,digit in enumerate(temp):
-            if c>=len(cols_x):
-                break
-            # bỏ qua ký tự không phải số
-            if not digit.isdigit():
-                continue
-            row = int(digit) + 2
-            if row >= len(rows_y):
-                continue
-            correct_points.append((cols_x[c],rows_y[row],radius))
+            temp = str(correct_answer)
+            radius = int(avg_w * 0.45)
+    
+            # Duyệt qua từng ký tự trong chuỗi gốc, mỗi ký tự map đúng vào 1 cột
+            for c, char in enumerate(temp):
+                # Giới hạn số cột tối đa là 4 (hoặc độ dài của mảng cols_x)
+                if c >= len(cols_x) or c >= 4:
+                    break
+                    
+                row_idx = -1
+                
+                # Ánh xạ ký tự thành index của hàng (row).
+                # Phiếu này có 11 hàng: hàng 0 chứa CẢ dấu âm lẫn dấu phẩy
+                # (phân biệt theo cột), hàng 1..10 là chữ số 0..9.
+                if char == "-":
+                    row_idx = 0  # Dấu âm ở hàng 0
+                elif char == ",":
+                    row_idx = 0  # Dấu phẩy cũng ở hàng 0, khác cột
+                elif char.isdigit():
+                    row_idx = int(char) + 1  # Số 0 ở hàng 1 -> số 9 ở hàng 10
+                    
+                # Nếu ký tự hợp lệ và không vượt quá số lượng hàng thực tế
+                if row_idx != -1 and row_idx < len(rows_y):
+                    correct_points.append((cols_x[c], rows_y[row_idx], radius))
             
 
     return answer_str, debug, selected_points, is_correct, correct_points
@@ -875,408 +862,408 @@ def crop_relative(img, roi):
 
     return img[y:y+h, x:x+w]
 
-img_original  = cv2.imread(r'C:\Users\Admin\Downloads\Project_1\backend\data\data2 2-8-2026\IMG_8243.JPEG')
+img_original  = cv2.imread(r'C:\Users\Admin\Downloads\Project_1\backend\data\data2 2-8-2026\IMG_8149.JPEG')
 
-folder = r"C:\Users\Admin\Downloads\Project_1\backend\data\data2 2-8-2026\datatest1"
-image_files = []
-image_files.extend(glob.glob(os.path.join(folder, "*.png")))
-image_files.extend(glob.glob(os.path.join(folder, "*.jpg")))
-image_files.extend(glob.glob(os.path.join(folder, "*.jpeg")))
-for file_path in image_files:
-    img_original = cv2.imread(file_path)
-    file_name = os.path.basename(file_path)
-    print("anh ", file_name)
+# folder = r"C:\Users\Admin\Downloads\Project_1\backend\data\data2 2-8-2026\datatest1"
+# image_files = []
+# image_files.extend(glob.glob(os.path.join(folder, "*.png")))
+# image_files.extend(glob.glob(os.path.join(folder, "*.jpg")))
+# image_files.extend(glob.glob(os.path.join(folder, "*.jpeg")))
+# for file_path in image_files:
+#     img_original = cv2.imread(file_path)
+#     file_name = os.path.basename(file_path)
+#     print("anh ", file_name)
     
 
-    img = img_original.copy()   # xử lý
-    img_debug   = img_original.copy()   # vẽ debug
+img = img_original.copy()   # xử lý
+img_debug   = img_original.copy()   # vẽ debug
 
-    gray = cv2.cvtColor(img_original, cv2.COLOR_BGR2GRAY)
+gray = cv2.cvtColor(img_original, cv2.COLOR_BGR2GRAY)
 
-    clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
+clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
 
-    gray = clahe.apply(gray)
+gray = clahe.apply(gray)
 
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 51, 15)
-        
-    kernel = np.ones((3, 3), np.uint8)
-    thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-
-    edged = cv2.Canny(thresh, 75, 200)
-
-    # _, thresh = cv2.threshold(blurred, 150, 255, cv2.THRESH_BINARY_INV)
-
-    # cv2.imshow('2. Canny Edges', edged)
-    # cv2.namedWindow('Canny Edges', cv2.WINDOW_NORMAL)
-    # cv2.resizeWindow('Canny Edges', 600, 800)
-    # cv2.imshow('Canny Edges', edged)
-
-    H, W = img.shape[:2]
-
-    roi_size = int(min(W, H) * 0.25)  # 25% cạnh ngắn
-
-    margin = 0
-    img_markers = img.copy()
-    markers = [] # Mảng chứa các điểm neo (Vuông)
-    marker_centers_unique = [] # Mảng chứa tâm điểm neo đã được lọc trùng lặp (nếu có)
-    bubbles = [] # Mảng chứa các ô đáp án (Tròn)
-    timing_marks = []   # các hình chữ nhật bên phải mã đề
-    id_boxes = []   # khung lớn SBD + Mã đề
-
-    # CHỌN 4 GÓC CỦA TỜ GIẤY LÀM NEO
-
-    # TL
-    cv2.rectangle( img, (margin, margin), (roi_size + margin, roi_size + margin), (0,255,0), 4)
-    roi_tl = img[
-        margin : margin + roi_size,
-        margin : margin + roi_size
-    ]
-    # cv2.imshow("ROI TL", roi_tl)
-    # TR
-    cv2.rectangle( img, (W - roi_size - margin, margin), (W - margin, roi_size + margin), (0,255,0),4)
-    roi_tr = img[
-        margin : margin + roi_size,
-        W-roi_size-margin : W-margin
-    ]
-    # cv2.imshow("ROI TR", roi_tr)
-    # BL
-    cv2.rectangle( img, (margin, H - roi_size - margin), (roi_size + margin, H - margin), (0,255,0), 4)
-    roi_bl = img[
-        H-roi_size-margin : H-margin,
-        margin : margin+roi_size
-    ]
-    # cv2.imshow("ROI BL", roi_bl)
-    # BR
-    cv2.rectangle( img, (W - roi_size - margin, H - roi_size - margin), (W - margin, H - margin), (0,255,0), 4)
-    roi_br = img[
-        H-roi_size-margin : H-margin,
-        W-roi_size-margin : W-margin
-    ]
-    # cv2.imshow("ROI BR", roi_br)
-
-    # cv2.imshow("4 ROI Corners", img)
-
-    # ...
-
-    # ==========================================
-    # PHÂN LUỒNG LOGIC: 4 ĐIỂM vs 3 ĐIỂM
-    # ==========================================
-
-    TL = find_marker_in_roi( roi_tl, margin, margin, "ROI TL DEBUG")
-
-    TR = find_marker_in_roi( roi_tr, W-roi_size-margin, margin, "ROI TR DEBUG")
-
-    BL = find_marker_in_roi( roi_bl, margin,H-roi_size-margin, "ROI BL DEBUG")
-
-    BR = find_marker_in_roi( roi_br, W-roi_size-margin, H-roi_size-margin, "ROI BR DEBUG")
-
-    print("TL =", TL)
-    print("TR =", TR)
-    print("BL =", BL)
-    print("BR =", BR)
-
-    print("top =", dist(TL,TR))
-    print("bottom =", dist(BL,BR))
-    print("left =", dist(TL,BL))
-    print("right =", dist(TR,BR))
-
-    for p in [TL,TR,BL,BR]:
-        if p is not None:
-            cv2.circle( img,p, 20,(255,0,255), -1)
-
-    # ==========================================
-    # ĐÓNG GÓI VÀ KIỂM TRA (Giữ nguyên của bạn)
-    # ==========================================
-    src = np.array([TL, TR, BR, BL], dtype=np.float32)
-
-    top_width = dist(TL, TR)
-    bottom_width = dist(BL, BR)
-    left_height = dist(TL, BL)
-    right_height = dist(TR, BR)
-
-    ratio_w = top_width / (bottom_width + 1e-5)
-    ratio_h = left_height / (right_height + 1e-5)
-
-    for p in src.astype(int):
-        cv2.circle(img, tuple(p), 15, (255, 0, 255), -1) 
-
-    # cv2.namedWindow('Corners', cv2.WINDOW_NORMAL)
-    # cv2.resizeWindow('Corners', 600, 800)
-    # cv2.imshow('Corners', img)
-
-    # print(f"Tọa độ 4 góc: TL={TL}, TR={TR}, BL={BL}, BR={BR}")
-
-    # 7. WARP ẢNH VỀ HỆ TỌA ĐỘ CHUẨN
-    warp, M = warp_paper(img_original,TL,TR,BR,BL,out_w=1000,out_h=1400,expand=20,pad=30)
-    warp_gray = cv2.cvtColor(warp, cv2.COLOR_BGR2GRAY)
-    warp_blur = cv2.GaussianBlur(warp_gray, (5,5), 0)
-    warp_thresh = cv2.adaptiveThreshold( warp_blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 31, 10)
-    cnts, _ = cv2.findContours( warp_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cv2.namedWindow('warp', cv2.WINDOW_NORMAL)
-    cv2.resizeWindow('warp', 600, 800)
-    cv2.imshow('warp', warp)
-
-
-
-    # ==========================================
-    # Cắt ROI TỪNG PHẦN THEO TỌA ĐỘ
-    # ==========================================
-    points = []
-
-    # cv2.imshow("warp", img)
-    W =1000
-    H =1400
-    # Cắt ROI TỪNG PHẦN THEO TỌA ĐỘ (SBD)
-    # x = 640 , x2 = 830 , y = 130 , 380
-    x1_sbd = 640 
-    x2_sbd = 830
-    y1_sbd = 140
-    y2_sbd = 380
-
-    SBD = (x1_sbd / W, y1_sbd / H, (x2_sbd - x1_sbd) / W, (y2_sbd - y1_sbd) / H)
-
-    # Cắt ROI TỪNG PHẦN THEO TỌA ĐỘ (MD)
-    # x = 830 , x2 = 940 , y = 130 , 380
-    x1_md = 820 
-    x2_md = 945
-    y1_md = 140
-    y2_md = 380
-
-    MD = (x1_md / W, y1_md / H, (x2_md - x1_md) / W, (y2_md - y1_md) / H)
-
-    md = cat_roi(MD, 3)
-    sbd = cat_roi(SBD, 6)
+blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 51, 15)
     
+kernel = np.ones((3, 3), np.uint8)
+thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
 
-    print('SÔ BÁO DANH : ', sbd)
-    print('MÃ ĐỀ : ',md)
+edged = cv2.Canny(thresh, 75, 200)
 
-    with open("answers.json", "r", encoding="utf-8") as f:
-        exams = json.load(f)
+# _, thresh = cv2.threshold(blurred, 150, 255, cv2.THRESH_BINARY_INV)
 
-    answer_key = exams.get(md)
+# cv2.imshow('2. Canny Edges', edged)
+# cv2.namedWindow('Canny Edges', cv2.WINDOW_NORMAL)
+# cv2.resizeWindow('Canny Edges', 600, 800)
+# cv2.imshow('Canny Edges', edged)
 
-    if answer_key is None:
-        print("Không tìm thấy mã đề:", md)
-        exit()
+H, W = img.shape[:2]
 
-    # print("DAP AN")
-    # print(exams)
+roi_size = int(min(W, H) * 0.25)  # 25% cạnh ngắn
 
-    md_answer_key =  exams[md]
-    answer_key_part1 = md_answer_key['mcq']
-    answer_key_2 = md_answer_key['tf']
-    answer_key_3 = md_answer_key['essay']
-    # print(answer_key_part1)
+margin = 0
+img_markers = img.copy()
+markers = [] # Mảng chứa các điểm neo (Vuông)
+marker_centers_unique = [] # Mảng chứa tâm điểm neo đã được lọc trùng lặp (nếu có)
+bubbles = [] # Mảng chứa các ô đáp án (Tròn)
+timing_marks = []   # các hình chữ nhật bên phải mã đề
+id_boxes = []   # khung lớn SBD + Mã đề
 
-    # Cắt ROI TỪNG PHẦN THEO TỌA ĐỘ (PART1)
-    # x = 60 , x2 = 650 , y = 445 , 700
-    y1_part1 = 425
-    y2_part1 = 720
+# CHỌN 4 GÓC CỦA TỜ GIẤY LÀM NEO
 
-    PART1 = [
-        (60/W,  y1_part1/H, (200-60)/W,  (y2_part1-y1_part1)/H),
-        (200/W, y1_part1/H, (350-200)/W, (y2_part1-y1_part1)/H),
-        (350/W, y1_part1/H, (495-350)/W, (y2_part1-y1_part1)/H),
-        (510/W, y1_part1/H, (645-510)/W, (y2_part1-y1_part1)/H),
-    ]
+# TL
+cv2.rectangle( img, (margin, margin), (roi_size + margin, roi_size + margin), (0,255,0), 4)
+roi_tl = img[
+    margin : margin + roi_size,
+    margin : margin + roi_size
+]
+# cv2.imshow("ROI TL", roi_tl)
+# TR
+cv2.rectangle( img, (W - roi_size - margin, margin), (W - margin, roi_size + margin), (0,255,0),4)
+roi_tr = img[
+    margin : margin + roi_size,
+    W-roi_size-margin : W-margin
+]
+# cv2.imshow("ROI TR", roi_tr)
+# BL
+cv2.rectangle( img, (margin, H - roi_size - margin), (roi_size + margin, H - margin), (0,255,0), 4)
+roi_bl = img[
+    H-roi_size-margin : H-margin,
+    margin : margin+roi_size
+]
+# cv2.imshow("ROI BL", roi_bl)
+# BR
+cv2.rectangle( img, (W - roi_size - margin, H - roi_size - margin), (W - margin, H - margin), (0,255,0), 4)
+roi_br = img[
+    H-roi_size-margin : H-margin,
+    W-roi_size-margin : W-margin
+]
+# cv2.imshow("ROI BR", roi_br)
 
-    all_answers1 = {}
+# cv2.imshow("4 ROI Corners", img)
 
-    for i, roi in enumerate(PART1):
+# ...
 
-        part_roi = crop_relative(warp, roi)
+# ==========================================
+# PHÂN LUỒNG LOGIC: 4 ĐIỂM vs 3 ĐIỂM
+# ==========================================
 
-        answers, debug, selected_points_part1 = read_part1(part_roi,10,4,answer_key_part1,start_question=i*10+1)
+TL = find_marker_in_roi( roi_tl, margin, margin, "ROI TL DEBUG")
 
-        all_answers1.update(answers)
+TR = find_marker_in_roi( roi_tr, W-roi_size-margin, margin, "ROI TR DEBUG")
 
-        xr, yr, wr, hr = roi
+BL = find_marker_in_roi( roi_bl, margin,H-roi_size-margin, "ROI BL DEBUG")
 
-        x = int(xr * W)
-        y = int(yr * H)
-        w = int(wr * W)
-        h = int(hr * H)
+BR = find_marker_in_roi( roi_br, W-roi_size-margin, H-roi_size-margin, "ROI BR DEBUG")
 
-        # cv2.rectangle(warp, (x, y), (x+w, y+h), (0,255,0), 2)
+print("TL =", TL)
+print("TR =", TR)
+print("BL =", BL)
+print("BR =", BR)
 
-        for item in selected_points_part1:
-            (row,student_answer,cx,cy,radius,is_correct,correct_cx,correct_cy) = item
+print("top =", dist(TL,TR))
+print("bottom =", dist(BL,BR))
+print("left =", dist(TL,BL))
+print("right =", dist(TR,BR))
 
-            question_no = i*10 + row + 1
+for p in [TL,TR,BL,BR]:
+    if p is not None:
+        cv2.circle( img,p, 20,(255,0,255), -1)
 
-            wx = x + cx
-            wy = y + cy
+# ==========================================
+# ĐÓNG GÓI VÀ KIỂM TRA (Giữ nguyên của bạn)
+# ==========================================
+src = np.array([TL, TR, BR, BL], dtype=np.float32)
 
-            color = (0,255,0) if is_correct else (0,0,255)
+top_width = dist(TL, TR)
+bottom_width = dist(BL, BR)
+left_height = dist(TL, BL)
+right_height = dist(TR, BR)
 
-            # đáp án học sinh
-            cv2.circle(warp,(wx,wy),radius+1,color,2)
+ratio_w = top_width / (bottom_width + 1e-5)
+ratio_h = left_height / (right_height + 1e-5)
 
-            # nếu sai thì hiện luôn đáp án đúng
-            if not is_correct:
+for p in src.astype(int):
+    cv2.circle(img, tuple(p), 15, (255, 0, 255), -1) 
 
-                correct_wx = x + correct_cx
-                correct_wy = y + correct_cy
+# cv2.namedWindow('Corners', cv2.WINDOW_NORMAL)
+# cv2.resizeWindow('Corners', 600, 800)
+# cv2.imshow('Corners', img)
 
-                cv2.circle(warp,(correct_wx,correct_wy),radius+1,(0,255,0), 2)
+# print(f"Tọa độ 4 góc: TL={TL}, TR={TR}, BL={BL}, BR={BR}")
 
-            # cv2.putText(warp,f"{question_no}",(wx-15,wy-15),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,2)
+# 7. WARP ẢNH VỀ HỆ TỌA ĐỘ CHUẨN
+warp, M = warp_paper(img_original,TL,TR,BR,BL,out_w=1000,out_h=1400,expand=20,pad=30)
+warp_gray = cv2.cvtColor(warp, cv2.COLOR_BGR2GRAY)
+warp_blur = cv2.GaussianBlur(warp_gray, (5,5), 0)
+warp_thresh = cv2.adaptiveThreshold( warp_blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 31, 10)
+cnts, _ = cv2.findContours( warp_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+cv2.namedWindow('warp', cv2.WINDOW_NORMAL)
+cv2.resizeWindow('warp', 600, 800)
+cv2.imshow('warp', warp)
 
-        # cv2.imshow(f"Part 1 {i+1}",debug)
 
-    # Cắt ROI TỪNG PHẦN THEO TỌA ĐỘ (PART2)
-    # x = 675 , x2 = 940 , y = 445 , 570
-    y1_part2_1 = 455
-    y2_part2_1 = 570
 
-    y1_part2_2 = 590
-    y2_part2_2 = 700
+# ==========================================
+# Cắt ROI TỪNG PHẦN THEO TỌA ĐỘ
+# ==========================================
+points = []
 
-    PART2 = [
-        (675/W, y1_part2_1/H, (805-675)/W, (y2_part2_1-y1_part2_1)/H),
-        (805/W, y1_part2_1/H, (940-805)/W, (y2_part2_1-y1_part2_1)/H),
-        (680/W, y1_part2_2/H, (810-680)/W, (y2_part2_2-y1_part2_2)/H),
-        (810/W, y1_part2_2/H, (940-810)/W, (y2_part2_2-y1_part2_2)/H),
-    ]
+# cv2.imshow("warp", img)
+W =1000
+H =1400
+# Cắt ROI TỪNG PHẦN THEO TỌA ĐỘ (SBD)
+# x = 640 , x2 = 830 , y = 130 , 380
+x1_sbd = 640 
+x2_sbd = 830
+y1_sbd = 140
+y2_sbd = 380
 
-    all_answers2 = {}
-    all_answers_part2 = []
+SBD = (x1_sbd / W, y1_sbd / H, (x2_sbd - x1_sbd) / W, (y2_sbd - y1_sbd) / H)
 
-    for i, roi in enumerate(PART2):
+# Cắt ROI TỪNG PHẦN THEO TỌA ĐỘ (MD)
+# x = 830 , x2 = 940 , y = 130 , 380
+x1_md = 820 
+x2_md = 945
+y1_md = 140
+y2_md = 380
 
-        start_question = i * 4 + 1
+MD = (x1_md / W, y1_md / H, (x2_md - x1_md) / W, (y2_md - y1_md) / H)
 
-        part_roi_2 = crop_relative(warp, roi)
+md = cat_roi(MD, 3)
+sbd = cat_roi(SBD, 6)
 
-        answers_part2, debug_part2, selected_points_part2, correct_points_part2  = build_part2_grid(part_roi_2, answer_key_2 , start_question = i * 2 + 1)
 
-        all_answers2.update(answers_part2)
+print('SÔ BÁO DANH : ', sbd)
+print('MÃ ĐỀ : ',md)
 
-        xr, yr, wr, hr = roi
+with open("answers.json", "r", encoding="utf-8") as f:
+    exams = json.load(f)
 
-        x = int(xr * W)
-        y = int(yr * H)
-        w = int(wr * W)
-        h = int(hr * H)
+answer_key = exams.get(md)
 
-        # cv2.rectangle(warp, (x, y), (x+w, y+h), (0,255,0), 2)
-        # Vẽ đáp án học sinh chọn
-        for item in selected_points_part2:
-            row, col, cx, cy, radius, is_correct = item
-            wx = x + cx
-            wy = y + cy
-            color = (0,255,255) if is_correct else (0,0,255)
+if answer_key is None:
+    print("Không tìm thấy mã đề:", md)
+    exit()
 
-            cv2.circle(warp,(wx,wy),radius+1,color,2)
+# print("DAP AN")
+# print(exams)
 
-        # Vẽ đáp án đúng (nếu sai)
-        for item in correct_points_part2:
-            cx, cy, radius = item
-            wx = x + cx
-            wy = y + cy
+md_answer_key =  exams[md]
+answer_key_part1 = md_answer_key['mcq']
+answer_key_2 = md_answer_key['tf']
+answer_key_3 = md_answer_key['essay']
+# print(answer_key_part1)
 
-            cv2.circle(warp,(wx,wy),radius+1,(0,255,0),2)
+# Cắt ROI TỪNG PHẦN THEO TỌA ĐỘ (PART1)
+# x = 60 , x2 = 650 , y = 445 , 700
+y1_part1 = 425
+y2_part1 = 720
 
-        cv2.imshow(f"PART2_{i+1}",debug_part2)
+PART1 = [
+    (60/W,  y1_part1/H, (200-60)/W,  (y2_part1-y1_part1)/H),
+    (200/W, y1_part1/H, (350-200)/W, (y2_part1-y1_part1)/H),
+    (350/W, y1_part1/H, (495-350)/W, (y2_part1-y1_part1)/H),
+    (510/W, y1_part1/H, (645-510)/W, (y2_part1-y1_part1)/H),
+]
 
-    # ==========================================
-    # Cắt ROI TỪNG PHẦN THEO TỌA ĐỘ (PART3)
-    # ==========================================
-    # CÂU 1 : x = 65 , x2 = 190 , y = 780 , 1030 
-    # b) 210 , 335 
-    # c) x = 65 , x2 = 190 , 1070 , 1330
-    # d) 210 , 335 
-    y1_part3_top = 780
-    y2_part3_top = 1050
+all_answers1 = {}
 
-    y1_part3_bottom = 1070
-    y2_part3_bottom = 1350
+for i, roi in enumerate(PART1):
 
-    PART3 = [
-        # a
-        (60/W, y1_part3_top/H, (190-60)/W, (y2_part3_top-y1_part3_top)/H),
-        # b
-        (210/W, y1_part3_top/H, (335-210)/W, (y2_part3_top-y1_part3_top)/H),
-        # c
-        (65/W, y1_part3_bottom/H, (190-65)/W, (y2_part3_bottom-y1_part3_bottom)/H),
-        # d
-        (210/W, y1_part3_bottom/H, (335-210)/W, (y2_part3_bottom-y1_part3_bottom)/H),
-    ]
+    part_roi = crop_relative(warp, roi)
 
-    # CÂU 2 : x = 365 , x2 = 490 , y = 780 , 1030 
-    # b) 510 , 635 
-    # c) x = 365 , x2 = 490 , 1070 , 1330
-    # d) 510 , 635 
-    PART3 += [
-        (365/W, y1_part3_top/H, (490-365)/W, (y2_part3_top-y1_part3_top)/H),
-        (510/W, y1_part3_top/H, (635-510)/W, (y2_part3_top-y1_part3_top)/H),
-        (365/W, y1_part3_bottom/H, (490-365)/W, (y2_part3_bottom-y1_part3_bottom)/H),
-        (510/W, y1_part3_bottom/H, (635-510)/W, (y2_part3_bottom-y1_part3_bottom)/H),
-    ]
+    answers, debug, selected_points_part1 = read_part1(part_roi,10,4,answer_key_part1,start_question=i*10+1)
 
-    # CÂU 3 : x = 965 , x2 = 790 , y = 780 , 1030 
-    # b) 810 , 935 
-    # c) x = 665 , x2 = 790 , 1070 , 1330
-    # d) 810 , 935 
-    PART3 += [
-        (665/W, y1_part3_top/H, (790-665)/W, (y2_part3_top-y1_part3_top)/H),
-        (810/W, y1_part3_top/H, (935-810)/W, (y2_part3_top-y1_part3_top)/H),
-        (665/W, y1_part3_bottom/H, (790-665)/W, (y2_part3_bottom-y1_part3_bottom)/H),
-        (810/W, y1_part3_bottom/H, (935-810)/W, (y2_part3_bottom-y1_part3_bottom)/H),
-    ]
+    all_answers1.update(answers)
 
-    all_answers3 = {}
-    correct_points_3_1 = []
+    xr, yr, wr, hr = roi
 
-    for i, roi in enumerate(PART3):
+    x = int(xr * W)
+    y = int(yr * H)
+    w = int(wr * W)
+    h = int(hr * H)
 
-        question_no = i + 1
+    # cv2.rectangle(warp, (x, y), (x+w, y+h), (0,255,0), 2)
 
-        part_roi_3 = crop_relative( warp, roi)
+    for item in selected_points_part1:
+        (row,student_answer,cx,cy,radius,is_correct,correct_cx,correct_cy) = item
 
-        answer_part3, debug_part3, selected_points_part3, is_correct, correct_points = build_part3_grid( part_roi_3, answer_key_3, question_no)
+        question_no = i*10 + row + 1
 
-        all_answers3[question_no] = answer_part3
+        wx = x + cx
+        wy = y + cy
 
-        xr, yr, wr, hr = roi
+        color = (0,255,0) if is_correct else (0,0,255)
 
-        x = int(xr*W)
-        y = int(yr*H)
-        w = int(wr*W)
-        h = int(hr*H)
+        # đáp án học sinh
+        cv2.circle(warp,(wx,wy),radius+1,color,2)
 
-        # cv2.rectangle(warp,(x,y),(x+w,y+h), (0,255,0), 2)
-
-        color = ((0,255,0) if is_correct else(0,0,255))
-
-        for item in selected_points_part3:
-
-            row,col,cx,cy,radius = item
-
-            wx = x + cx
-            wy = y + cy
-
-            cv2.circle(warp,(wx,wy),radius+1,color,2)
-
-        # Vẽ đáp án đúng nếu sai
+        # nếu sai thì hiện luôn đáp án đúng
         if not is_correct:
-            for item in correct_points:
-                cx,cy,radius = item
-                wx = x + cx
-                wy = y + cy
 
-                cv2.circle(warp,(wx,wy), radius+1,(0,255,0),2)
+            correct_wx = x + correct_cx
+            correct_wy = y + correct_cy
+
+            cv2.circle(warp,(correct_wx,correct_wy),radius+1,(0,255,0), 2)
+
+        # cv2.putText(warp,f"{question_no}",(wx-15,wy-15),cv2.FONT_HERSHEY_SIMPLEX,0.5,color,2)
+
+    # cv2.imshow(f"Part 1 {i+1}",debug)
+
+# Cắt ROI TỪNG PHẦN THEO TỌA ĐỘ (PART2)
+# x = 675 , x2 = 940 , y = 445 , 570
+y1_part2_1 = 455
+y2_part2_1 = 570
+
+y1_part2_2 = 590
+y2_part2_2 = 700
+
+PART2 = [
+    (675/W, y1_part2_1/H, (805-675)/W, (y2_part2_1-y1_part2_1)/H),
+    (805/W, y1_part2_1/H, (940-805)/W, (y2_part2_1-y1_part2_1)/H),
+    (680/W, y1_part2_2/H, (810-680)/W, (y2_part2_2-y1_part2_2)/H),
+    (810/W, y1_part2_2/H, (940-810)/W, (y2_part2_2-y1_part2_2)/H),
+]
+
+all_answers2 = {}
+all_answers_part2 = []
+
+for i, roi in enumerate(PART2):
+
+    start_question = i * 4 + 1
+
+    part_roi_2 = crop_relative(warp, roi)
+
+    answers_part2, debug_part2, selected_points_part2, correct_points_part2  = build_part2_grid(part_roi_2, answer_key_2 , start_question = i * 2 + 1)
+
+    all_answers2.update(answers_part2)
+
+    xr, yr, wr, hr = roi
+
+    x = int(xr * W)
+    y = int(yr * H)
+    w = int(wr * W)
+    h = int(hr * H)
+
+    # cv2.rectangle(warp, (x, y), (x+w, y+h), (0,255,0), 2)
+    # Vẽ đáp án học sinh chọn
+    for item in selected_points_part2:
+        row, col, cx, cy, radius, is_correct = item
+        wx = x + cx
+        wy = y + cy
+        color = (0,255,255) if is_correct else (0,0,255)
+
+        cv2.circle(warp,(wx,wy),radius+1,color,2)
+
+    # Vẽ đáp án đúng (nếu sai)
+    for item in correct_points_part2:
+        cx, cy, radius = item
+        wx = x + cx
+        wy = y + cy
+
+        cv2.circle(warp,(wx,wy),radius+1,(0,255,0),2)
+
+    cv2.imshow(f"PART2_{i+1}",debug_part2)
+
+# ==========================================
+# Cắt ROI TỪNG PHẦN THEO TỌA ĐỘ (PART3)
+# ==========================================
+# CÂU 1 : x = 65 , x2 = 190 , y = 780 , 1030 
+# b) 210 , 335 
+# c) x = 65 , x2 = 190 , 1070 , 1330
+# d) 210 , 335 
+y1_part3_top = 780
+y2_part3_top = 1050
+
+y1_part3_bottom = 1070
+y2_part3_bottom = 1350
+
+PART3 = [
+    # a
+    (60/W, y1_part3_top/H, (190-60)/W, (y2_part3_top-y1_part3_top)/H),
+    # b
+    (210/W, y1_part3_top/H, (335-210)/W, (y2_part3_top-y1_part3_top)/H),
+    # c
+    (65/W, y1_part3_bottom/H, (190-65)/W, (y2_part3_bottom-y1_part3_bottom)/H),
+    # d
+    (210/W, y1_part3_bottom/H, (335-210)/W, (y2_part3_bottom-y1_part3_bottom)/H),
+]
+
+# CÂU 2 : x = 365 , x2 = 490 , y = 780 , 1030 
+# b) 510 , 635 
+# c) x = 365 , x2 = 490 , 1070 , 1330
+# d) 510 , 635 
+PART3 += [
+    (365/W, y1_part3_top/H, (490-365)/W, (y2_part3_top-y1_part3_top)/H),
+    (510/W, y1_part3_top/H, (635-510)/W, (y2_part3_top-y1_part3_top)/H),
+    (365/W, y1_part3_bottom/H, (490-365)/W, (y2_part3_bottom-y1_part3_bottom)/H),
+    (510/W, y1_part3_bottom/H, (635-510)/W, (y2_part3_bottom-y1_part3_bottom)/H),
+]
+
+# CÂU 3 : x = 965 , x2 = 790 , y = 780 , 1030 
+# b) 810 , 935 
+# c) x = 665 , x2 = 790 , 1070 , 1330
+# d) 810 , 935 
+PART3 += [
+    (665/W, y1_part3_top/H, (790-665)/W, (y2_part3_top-y1_part3_top)/H),
+    (810/W, y1_part3_top/H, (935-810)/W, (y2_part3_top-y1_part3_top)/H),
+    (665/W, y1_part3_bottom/H, (790-665)/W, (y2_part3_bottom-y1_part3_bottom)/H),
+    (810/W, y1_part3_bottom/H, (935-810)/W, (y2_part3_bottom-y1_part3_bottom)/H),
+]
+
+all_answers3 = {}
+correct_points_3_1 = []
+
+for i, roi in enumerate(PART3):
+
+    question_no = i + 1
+
+    part_roi_3 = crop_relative( warp, roi)
+
+    answer_part3, debug_part3, selected_points_part3, is_correct, correct_points = build_part3_grid( part_roi_3, answer_key_3, question_no)
+
+    all_answers3[question_no] = answer_part3
+
+    xr, yr, wr, hr = roi
+
+    x = int(xr*W)
+    y = int(yr*H)
+    w = int(wr*W)
+    h = int(hr*H)
+
+    # cv2.rectangle(warp,(x,y),(x+w,y+h), (0,255,0), 2)
+
+    color = ((0,255,0) if is_correct else(0,0,255))
+
+    for item in selected_points_part3:
+
+        row,col,cx,cy,radius = item
+
+        wx = x + cx
+        wy = y + cy
+
+        cv2.circle(warp,(wx,wy),radius+1,color,2)
+
+    # Vẽ đáp án đúng nếu sai
+    if not is_correct:
+        for item in correct_points:
+            cx,cy,radius = item
+            wx = x + cx
+            wy = y + cy
+
+            cv2.circle(warp,(wx,wy), radius+1,(0,255,0),2)
+    
+    # cv2.imshow(f"PART3_{i+1}",debug_part3)
         
-        # cv2.imshow(f"PART3_{i+1}",debug_part3)
-            
-        cv2.putText(warp,f"Q{question_no}: {answer_part3}",(x,y-10),cv2.FONT_HERSHEY_SIMPLEX, 0.5,color,2)
+    cv2.putText(warp,f"Q{question_no}: {answer_part3}",(x,y-10),cv2.FONT_HERSHEY_SIMPLEX, 0.5,color,2)
 
-    cv2.namedWindow('warp', cv2.WINDOW_NORMAL)
-    cv2.resizeWindow('warp', 800, 1000)
-    cv2.imshow('warp', warp)
+cv2.namedWindow('warp', cv2.WINDOW_NORMAL)
+cv2.resizeWindow('warp', 800, 1000)
+cv2.imshow('warp', warp)
 
 
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+cv2.waitKey(0)
+cv2.destroyAllWindows()

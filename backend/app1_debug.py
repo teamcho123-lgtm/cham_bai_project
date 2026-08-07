@@ -17,8 +17,6 @@ from function.wrinkle_detector import (
 # pip install opencv-python
 # pip install numpy
 
-from models.bai_thi import BaiThi
-
 # 0.HÀM CHUẨN BỊ
 
 def find_marker_in_roi(roi, offset_x=0, offset_y=0, win_name="ROI DEBUG"):
@@ -736,26 +734,19 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
 
     rows_y = [int(np.mean(r)) for r in rows_y]
     print("rows_y =", rows_y)
-    
-    result = []
 
-    digits = [""] * 4
+    if len(rows_y) != rows:
+        print(f"CANH BAO Phan III cau {question_no}: phat hien {len(rows_y)} hang, "
+              f"ky vong {rows} hang - cac hang co the bi lech chi so")
+
+    digits = [""] * cols
 
     minus = False
     comma_pos = -1
 
     avg_w = int(np.median([w for _,_,w,_ in bubbles]))
-    
-    answer_str = ""
 
     for r, cy in enumerate(rows_y):
-
-        row_answer = []
-
-        best_fill = 0
-        best_col = -1
-
-        temp_data = []
 
         for c, cx in enumerate(cols_x):
 
@@ -769,20 +760,12 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
 
             filled = cv2.countNonZero(bubble_region)
 
-            temp_data.append((cx,cy,radius,filled))
-
-            if filled > best_fill:
-                best_fill = filled
-                best_col = c
-
             area_circle = np.pi * radius * radius
 
             ratio_fill = filled / area_circle
 
-            # tô > 35%
+            # tô > 30%
             marked = ratio_fill > 0.3
-
-            row_answer.append(marked)
 
             if marked:
                 color = (0,255,0)
@@ -798,30 +781,60 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
 
                 selected_points.append((r,c,cx,cy,radius))
             else:
-                color = (0,255,255)  
-            
+                color = (0,255,255)
+
             cv2.circle(debug,(cx,cy),radius,color,2)
 
-        result.append(row_answer)
+    # Chi ghep chuoi 1 LAN sau khi da doc het moi hang (digits chi day du
+    # sau khi vong lap ket thuc - tinh lai moi hang nhu truoc la thua va
+    # khong anh huong ket qua cuoi, nhung de ro rang nen chuyen ra ngoai).
+    answer_str = "".join(digits)
 
-        answer_str = "".join(digits)
+    if comma_pos != -1:
+        # comma_pos la CHI SO COT (0..cols-1) trong luoi 4 cot, khong phai
+        # chi so trong chuoi da join() - vi cac cot rong ("") bi join() bo
+        # qua nen chuoi ket qua ngan hon 4 ky tu. Phai dem so ky tu THUC SU
+        # xuat hien truoc cot chua dau phay, khong dung thang comma_pos,
+        # neu khong dau phay se bi day sai vi tri (thuong la ra cuoi chuoi).
+        comma_str_pos = sum(1 for d in digits[:comma_pos] if d != "")
+        answer_str = answer_str[:comma_str_pos] + "," + answer_str[comma_str_pos:]
 
-        if comma_pos != -1:
-            answer_str = (
-                answer_str[:comma_pos]
-                + ","
-                + answer_str[comma_pos:]
+    if minus:
+        answer_str = "-" + answer_str
+
+    # ===== So sanh dap an - dong bo voi logic cua app1.py (ho tro dict /
+    # nhieu dap an chap nhan duoc / chuan hoa dau "." va ",") =====
+
+    correct_data = answer_key_3.get(str(question_no))
+
+    if correct_data is None:
+        print(f"Bỏ qua câu Phần III {question_no}: không có đáp án chuẩn")
+        is_correct = False
+    else:
+        if isinstance(correct_data, dict):
+            accepted_answers = (
+                correct_data.get("acceptedAnswers")
+                or [correct_data.get("answer")]
             )
-        if minus:
-            answer_str = "-" + answer_str
+        else:
+            accepted_answers = [correct_data]
 
-        correct_answer = answer_key_3[str(question_no)]
+        def normalize_short_answer(value):
+            return str(value).strip().replace(".", ",")
 
-        is_correct = (answer_str == correct_answer)
+        student_value = normalize_short_answer(answer_str)
+
+        accepted_values = {
+            normalize_short_answer(value)
+            for value in accepted_answers
+            if value is not None
+        }
+
+        is_correct = (student_value in accepted_values)
 
     return answer_str, debug, selected_points, is_correct
 
-# img_original  = cv2.imread(r'C:\Users\Admin\Downloads\Project_1\backend\data\data1\ptn4.png')
+img_original  = cv2.imread(r'C:\Users\Admin\Downloads\Project_1\backend\data\data1\ptn4.png')
 
 folder = r"C:\Users\Admin\Downloads\Project_1\backend\data\data1 31-7-2026"
 image_files = []
@@ -1195,612 +1208,612 @@ for file_path in image_files:
 
 
 
-    # with open("answers.json", "r", encoding="utf-8") as f:
-    #     exams = json.load(f)
+    with open("answers.json", "r", encoding="utf-8") as f:
+        exams = json.load(f)
 
-    # answer_key = exams.get(ma_de)
+    answer_key = exams.get(ma_de)
 
-    # if answer_key is None:
-    #     print("Không tìm thấy mã đề:", ma_de)
-    #     exit()
+    if answer_key is None:
+        print("Không tìm thấy mã đề:", ma_de)
+        exit()
 
-    # print("DAP AN")
-    # print(exams)
+    print("DAP AN")
+    print(exams)
 
-    # md_answer_key =  exams[ma_de]
-    # answer_key_part1 = md_answer_key['mcq']
-    # answer_key_2 = md_answer_key['tf']
-    # answer_key_3 = md_answer_key['essay']
-    # print(answer_key_3)
+    md_answer_key =  exams[ma_de]
+    answer_key_part1 = md_answer_key.get('mcq', {})
+    answer_key_2 = md_answer_key.get('trueFalse', md_answer_key.get('tf', {}))
+    answer_key_3 = md_answer_key.get('shortAnswer', md_answer_key.get('essay', {}))
+    print(answer_key_3)
 
-    # # ===============================
-    # # PHẦN 1
-    # # ===============================
+    # ===============================
+    # PHẦN 1
+    # ===============================
 
-    # for c in cnts:
-    #     peri = cv2.arcLength(c, True)
-    #     if peri == 0: continue
+    for c in cnts:
+        peri = cv2.arcLength(c, True)
+        if peri == 0: continue
         
-    #     approx = cv2.approxPolyDP(c, 0.025 * peri, True)
-    #     area = cv2.contourArea(c)
+        approx = cv2.approxPolyDP(c, 0.025 * peri, True)
+        area = cv2.contourArea(c)
         
-    #     # 2. RÚT RA NGOÀI: Tính toán chung cho mọi hình có diện tích vừa phải
-    #     if 0 < area < 3000:
-    #         x, y, w, h = cv2.boundingRect(c)
-    #         if w == 0 or h == 0: continue
+        # 2. RÚT RA NGOÀI: Tính toán chung cho mọi hình có diện tích vừa phải
+        if 0 < area < 3000:
+            x, y, w, h = cv2.boundingRect(c)
+            if w == 0 or h == 0: continue
                 
-    #         aspect_ratio = w / float(h)
-    #         rect_area = w * h
-    #         extent = area / float(rect_area)
-    #         circularity = (4 * math.pi * area) / (peri * peri)
+            aspect_ratio = w / float(h)
+            rect_area = w * h
+            extent = area / float(rect_area)
+            circularity = (4 * math.pi * area) / (peri * peri)
 
-    #         # 3. NGÃ RẼ 1: NỐT VUÔNG ĐIỂM NEO
-    #         if 4 <= len(approx) <= 8  and 0.8 <= aspect_ratio <= 1.9 and circularity < 0.85 and extent > 0.75:
-    #             markers.append(approx)
-    #             # cv2.drawContours(warp, [approx], -1, (0, 0, 255), 2) # Viền Đỏ
+            # 3. NGÃ RẼ 1: NỐT VUÔNG ĐIỂM NEO
+            if 4 <= len(approx) <= 8  and 0.8 <= aspect_ratio <= 1.9 and circularity < 0.85 and extent > 0.75:
+                markers.append(approx)
+                # cv2.drawContours(warp, [approx], -1, (0, 0, 255), 2) # Viền Đỏ
 
-    # centers_3 = []
+    centers_3 = []
 
-    # for m in markers:
+    for m in markers:
 
-    #     M = cv2.moments(m)
+        M = cv2.moments(m)
 
-    #     if M["m00"] == 0:
-    #         continue
+        if M["m00"] == 0:
+            continue
 
-    #     cx = int(M["m10"] / M["m00"])
-    #     cy = int(M["m01"] / M["m00"])
+        cx = int(M["m10"] / M["m00"])
+        cy = int(M["m01"] / M["m00"])
 
-    #     x,y,w,h = cv2.boundingRect(m)
+        x,y,w,h = cv2.boundingRect(m)
 
-    #     centers_3.append((cx,cy,x,y,w,h))
+        centers_3.append((cx,cy,x,y,w,h))
 
-    #     # cv2.circle(warp,(cx,cy),8,(0,255,255),-1)
+        # cv2.circle(warp,(cx,cy),8,(0,255,255),-1)
 
-    # print("Tổng marker =",len(centers_3))
-    # print(centers_3)
+    print("Tổng marker =",len(centers_3))
+    print(centers_3)
 
-    # part1_pts = []
+    part1_pts = []
 
-    # for item in centers_3:
+    for item in centers_3:
 
-    #     cx,cy,x,y,w,h = item
+        cx,cy,x,y,w,h = item
 
-    #     if 100 < cy < 800:
-    #         part1_pts.append((item))
-    #         cv2.circle(warp,(cx,cy),8,(0,0,255),-1)
+        if 100 < cy < 800:
+            part1_pts.append((item))
+            cv2.circle(warp,(cx,cy),8,(0,0,255),-1)
         
-    # part1_pts = sorted(part1_pts, key=lambda p: (p[1], p[0]))
+    part1_pts = sorted(part1_pts, key=lambda p: (p[1], p[0]))
 
-    # print("PART1 =", len(part1_pts))
+    print("PART1 =", len(part1_pts))
 
-    # print("PART1 PTS")
-    # for p in part1_pts:
-    #     print(p)
+    print("PART1 PTS")
+    for p in part1_pts:
+        print(p)
 
-    # TL1 = part1_pts[0]
-    # TR1 = part1_pts[1]
+    TL1 = part1_pts[0]
+    TR1 = part1_pts[1]
 
 
-    # if len(part1_pts) != 4:
-    #     raise Exception(
-    #         f"Part1 marker lỗi. Tìm thấy {len(part1_pts)} điểm"
-    #     )
+    if len(part1_pts) != 4:
+        raise Exception(
+            f"Part1 marker lỗi. Tìm thấy {len(part1_pts)} điểm"
+        )
 
-    # top_row_1 = sorted(part1_pts[:2], key=lambda p:p[0])
+    top_row_1 = sorted(part1_pts[:2], key=lambda p:p[0])
 
-    # mid_row_1 = sorted(part1_pts[2:4], key=lambda p:p[0])
+    mid_row_1 = sorted(part1_pts[2:4], key=lambda p:p[0])
 
-    # # bot_row = sorted(part2_pts[4:6], key=lambda p:p[0])
+    # bot_row = sorted(part2_pts[4:6], key=lambda p:p[0])
 
-    # TL1, TR1 = top_row_1
+    TL1, TR1 = top_row_1
 
-    # ML1, MR1 = mid_row_1
+    ML1, MR1 = mid_row_1
 
-    # part1_x = min(TL1[0], ML1[0])
-    # part1_y = min(TL1[1], TR1[1])
+    part1_x = min(TL1[0], ML1[0])
+    part1_y = min(TL1[1], TR1[1])
 
-    # # BL2, BR2 = bot_row
+    # BL2, BR2 = bot_row
 
-    # print("TL1 =", TL1)
-    # print("TR1 =", TR1)
+    print("TL1 =", TL1)
+    print("TR1 =", TR1)
 
-    # print("ML1  =", ML1)
-    # print("MR1  =", MR1)
+    print("ML1  =", ML1)
+    print("MR1  =", MR1)
 
-    # shrink = 0
+    shrink = 0
 
-    # src_part1 = np.float32([
-    #     [TL1[0] + shrink, TL1[1] + shrink ],
-    #     [TR1[0] - shrink, TR1[1] + shrink],
-    #     [MR1[0] - shrink, MR1[1] - shrink],
-    #     [ML1[0] + shrink, ML1[1] - shrink ]
-    # ])
+    src_part1 = np.float32([
+        [TL1[0] + shrink, TL1[1] + shrink ],
+        [TR1[0] - shrink, TR1[1] + shrink],
+        [MR1[0] - shrink, MR1[1] - shrink],
+        [ML1[0] + shrink, ML1[1] - shrink ]
+    ])
 
-    # w_part1 = 800
-    # h_part1 = 280
+    w_part1 = 800
+    h_part1 = 280
 
-    # dst_part1 = np.float32([
-    #     [0,0],
-    #     [w_part1,0],
-    #     [w_part1,h_part1],
-    #     [0,h_part1]
-    # ])
+    dst_part1 = np.float32([
+        [0,0],
+        [w_part1,0],
+        [w_part1,h_part1],
+        [0,h_part1]
+    ])
 
-    # M1 = cv2.getPerspectiveTransform(src_part1, dst_part1)
+    M1 = cv2.getPerspectiveTransform(src_part1, dst_part1)
 
-    # M1_inv = cv2.getPerspectiveTransform(
-    #     dst_part1,
-    #     src_part1
-    # )
+    M1_inv = cv2.getPerspectiveTransform(
+        dst_part1,
+        src_part1
+    )
 
-    # part1_roi = cv2.warpPerspective(warp,M1,(w_part1, h_part1))
+    part1_roi = cv2.warpPerspective(warp,M1,(w_part1, h_part1))
 
-    # cv2.line(warp,(TL1[0], TL1[1] ),(TR1[0], TR1[1]),(0,255,0),2)
+    cv2.line(warp,(TL1[0], TL1[1] ),(TR1[0], TR1[1]),(0,255,0),2)
 
-    # cv2.line(warp,(ML1[0], ML1[1]),(MR1[0], MR1[1]),(0,255,0),2)
+    cv2.line(warp,(ML1[0], ML1[1]),(MR1[0], MR1[1]),(0,255,0),2)
 
-    # # cv2.line(warp,(ML[0] + 0, ML[1] - 75),(MR[0] + 1000, MR[1] - 75),(0,0,255), 2)
+    # cv2.line(warp,(ML[0] + 0, ML[1] - 75),(MR[0] + 1000, MR[1] - 75),(0,0,255), 2)
 
-    # cv2.line(warp,(TL1[0], TL1[1]),(ML1[0], ML1[1]),(0,255,0),2)
+    cv2.line(warp,(TL1[0], TL1[1]),(ML1[0], ML1[1]),(0,255,0),2)
 
-    # cv2.line(warp,(TR1[0], TR1[1]),(MR1[0], MR1[1]),(0,255,0),2)
+    cv2.line(warp,(TR1[0], TR1[1]),(MR1[0], MR1[1]),(0,255,0),2)
 
-    # # Cắt ROI
-    # cv2.imshow("PART1 ROI", part1_roi)
+    # Cắt ROI
+    cv2.imshow("PART1 ROI", part1_roi)
 
-    # h1, w1 = part1_roi.shape[:2]
+    h1, w1 = part1_roi.shape[:2]
 
-    # roi_part1_chia = w1 // 4
+    roi_part1_chia = w1 // 4
 
-    # all_part1_blocks = []
+    all_part1_blocks = []
 
-    # for i in range(4):
-    #     block_x1 = i * roi_part1_chia
-    #     if i == 3:
-    #         block_x2  = w1
-    #     else:
-    #         block_x2  = (i + 1) * roi_part1_chia
+    for i in range(4):
+        block_x1 = i * roi_part1_chia
+        if i == 3:
+            block_x2  = w1
+        else:
+            block_x2  = (i + 1) * roi_part1_chia
 
-    #     roi_block_par1 = part1_roi[:, block_x1:block_x2]
+        roi_block_par1 = part1_roi[:, block_x1:block_x2]
 
-    #     print(f"BLOCK {i+1}",roi_block_par1.shape)
+        print(f"BLOCK {i+1}",roi_block_par1.shape)
 
-    #     all_part1_blocks.append(roi_block_par1)
+        all_part1_blocks.append(roi_block_par1)
 
-    # all_answers1 = {}
+    all_answers1 = {}
 
-    # for i, block_part1 in enumerate(all_part1_blocks):
+    for i, block_part1 in enumerate(all_part1_blocks):
 
-    #     offset_x = int(i * roi_part1_chia)
+        offset_x = int(i * roi_part1_chia)
 
-    #     answers_part1, debug_part1, selected_points_part1 = read_part1(block_part1, 10, 4, answer_key_part1 , start_question=i*10+1 )
+        answers_part1, debug_part1, selected_points_part1 = read_part1(block_part1, 10, 4, answer_key_part1 , start_question=i*10+1 )
 
-    #     all_answers1.update(answers_part1)
+        all_answers1.update(answers_part1)
 
-    #     for q, ans, cx, cy, radius, is_correct, correct_cx, correct_cy  in selected_points_part1:
+        for q, ans, cx, cy, radius, is_correct, correct_cx, correct_cy  in selected_points_part1:
 
-    #         wx = int(part1_x + offset_x + cx)
-    #         wy = int(part1_y + cy)
+            wx = int(part1_x + offset_x + cx)
+            wy = int(part1_y + cy)
 
-    #         px = cx + offset_x
-    #         py = cy
+            px = cx + offset_x
+            py = cy
 
-    #         pt = np.array([[[px, py]]],dtype=np.float32)
+            pt = np.array([[[px, py]]],dtype=np.float32)
 
-    #         real_pt = cv2.perspectiveTransform(pt,M1_inv)
+            real_pt = cv2.perspectiveTransform(pt,M1_inv)
 
-    #         wx = int(real_pt[0][0][0])
-    #         wy = int(real_pt[0][0][1])
+            wx = int(real_pt[0][0][0])
+            wy = int(real_pt[0][0][1])
 
-    #         cv2.circle(img_kq,(wx, wy),8,(0,255,255),2)
+            cv2.circle(img_kq,(wx, wy),8,(0,255,255),2)
             
-    #         color = (0,255,0) if is_correct else (0,0,255)
+            color = (0,255,0) if is_correct else (0,0,255)
             
 
-    #         cv2.circle(img_kq,(wx, wy),radius + 3,color,2)
+            cv2.circle(img_kq,(wx, wy),radius + 3,color,2)
 
-    #         if not is_correct:
+            if not is_correct:
 
-    #             px2 = correct_cx + offset_x
-    #             py2 = correct_cy
+                px2 = correct_cx + offset_x
+                py2 = correct_cy
 
-    #             pt2 = np.array([[[px2, py2]]], dtype=np.float32)
+                pt2 = np.array([[[px2, py2]]], dtype=np.float32)
 
-    #             real_pt2 = cv2.perspectiveTransform(pt2, M1_inv)
+                real_pt2 = cv2.perspectiveTransform(pt2, M1_inv)
 
-    #             wx2 = int(real_pt2[0][0][0])
-    #             wy2 = int(real_pt2[0][0][1])
+                wx2 = int(real_pt2[0][0][0])
+                wy2 = int(real_pt2[0][0][1])
 
                 
-    #             cv2.circle(img_kq,(wx2, wy2),radius + 3,(0,255,0),2)
+                cv2.circle(img_kq,(wx2, wy2),radius + 3,(0,255,0),2)
 
-    #     cv2.imshow(f"PART1_GRID_{i+1}",debug_part1)
+        cv2.imshow(f"PART1_GRID_{i+1}",debug_part1)
 
-    # print(f"\n===== PART1 =====")
-    # # print(all_answers1)
+    print(f"\n===== PART1 =====")
+    # print(all_answers1)
 
 
-    # # ===============================
-    # # PHẦN 2
-    # # ===============================
-    # markers = []
-    # for c in cnts:
-    #     peri = cv2.arcLength(c, True)
-    #     if peri == 0: continue
+    # ===============================
+    # PHẦN 2
+    # ===============================
+    markers = []
+    for c in cnts:
+        peri = cv2.arcLength(c, True)
+        if peri == 0: continue
         
-    #     approx = cv2.approxPolyDP(c, 0.025 * peri, True)
-    #     area = cv2.contourArea(c)
+        approx = cv2.approxPolyDP(c, 0.025 * peri, True)
+        area = cv2.contourArea(c)
         
-    #     # 2. RÚT RA NGOÀI: Tính toán chung cho mọi hình có diện tích vừa phải
-    #     if 0 < area < 3000:
-    #         x, y, w, h = cv2.boundingRect(c)
-    #         if w == 0 or h == 0: continue
+        # 2. RÚT RA NGOÀI: Tính toán chung cho mọi hình có diện tích vừa phải
+        if 0 < area < 3000:
+            x, y, w, h = cv2.boundingRect(c)
+            if w == 0 or h == 0: continue
                 
-    #         aspect_ratio = w / float(h)
-    #         rect_area = w * h
-    #         extent = area / float(rect_area)
-    #         circularity = (4 * math.pi * area) / (peri * peri)
+            aspect_ratio = w / float(h)
+            rect_area = w * h
+            extent = area / float(rect_area)
+            circularity = (4 * math.pi * area) / (peri * peri)
 
-    #         # 3. NGÃ RẼ 1: NỐT VUÔNG ĐIỂM NEO
-    #         if 4 <= len(approx) <= 8  and 0.8 <= aspect_ratio <= 1.9 and circularity < 0.85 and extent > 0.75:
-    #             markers.append(approx)
-    #             # cv2.drawContours(warp, [approx], -1, (0, 0, 255), 2) # Viền Đỏ
+            # 3. NGÃ RẼ 1: NỐT VUÔNG ĐIỂM NEO
+            if 4 <= len(approx) <= 8  and 0.8 <= aspect_ratio <= 1.9 and circularity < 0.85 and extent > 0.75:
+                markers.append(approx)
+                # cv2.drawContours(warp, [approx], -1, (0, 0, 255), 2) # Viền Đỏ
 
-    # centers_1 = []
+    centers_1 = []
 
-    # for m in markers:
+    for m in markers:
 
-    #     M = cv2.moments(m)
+        M = cv2.moments(m)
 
-    #     if M["m00"] == 0:
-    #         continue
+        if M["m00"] == 0:
+            continue
 
-    #     cx = int(M["m10"] / M["m00"])
-    #     cy = int(M["m01"] / M["m00"])
+        cx = int(M["m10"] / M["m00"])
+        cy = int(M["m01"] / M["m00"])
 
-    #     x,y,w,h = cv2.boundingRect(m)
+        x,y,w,h = cv2.boundingRect(m)
 
-    #     centers_1.append((cx,cy,x,y,w,h))
+        centers_1.append((cx,cy,x,y,w,h))
 
-    #     # cv2.circle(warp,(cx,cy),8,(0,255,255),-1)
+        # cv2.circle(warp,(cx,cy),8,(0,255,255),-1)
 
-    # print("Tổng marker =",len(centers_1))
-    # print(centers_1)
+    print("Tổng marker =",len(centers_1))
+    print(centers_1)
 
 
-    # part2_pts = []
+    part2_pts = []
 
-    # for item in centers_1:
+    for item in centers_1:
 
-    #     cx,cy,x,y,w,h = item
+        cx,cy,x,y,w,h = item
 
-    #     if 700 < cy < 1000:
-    #         part2_pts.append((item))
-    #         # cv2.circle(warp,(cx,cy),8,(0,0,255),-1)
+        if 700 < cy < 1000:
+            part2_pts.append((item))
+            # cv2.circle(warp,(cx,cy),8,(0,0,255),-1)
         
-    # part2_pts = sorted(part2_pts, key=lambda p: (p[1], p[0]))
+    part2_pts = sorted(part2_pts, key=lambda p: (p[1], p[0]))
 
-    # print("PART2 =", len(part2_pts))
+    print("PART2 =", len(part2_pts))
 
-    # print("PART2 PTS")
-    # for p in part2_pts:
-    #     print(p)
+    print("PART2 PTS")
+    for p in part2_pts:
+        print(p)
 
-    # TL2 = part2_pts[0]
-    # TR2 = part2_pts[1]
+    TL2 = part2_pts[0]
+    TR2 = part2_pts[1]
 
-    # # BL2 = part2_pts[4]
-    # # BR2 = part2_pts[5]
+    # BL2 = part2_pts[4]
+    # BR2 = part2_pts[5]
 
-    # if len(part2_pts) != 4:
-    #     raise Exception(
-    #         f"Part2 marker lỗi. Tìm thấy {len(part2_pts)} điểm"
-    #     )
+    if len(part2_pts) != 4:
+        raise Exception(
+            f"Part2 marker lỗi. Tìm thấy {len(part2_pts)} điểm"
+        )
 
-    # top_row = sorted(part2_pts[:2], key=lambda p:p[0])
+    top_row = sorted(part2_pts[:2], key=lambda p:p[0])
 
-    # mid_row = sorted(part2_pts[2:4], key=lambda p:p[0])
+    mid_row = sorted(part2_pts[2:4], key=lambda p:p[0])
 
-    # # bot_row = sorted(part2_pts[4:6], key=lambda p:p[0])
+    # bot_row = sorted(part2_pts[4:6], key=lambda p:p[0])
 
-    # TL2, TR2 = top_row
+    TL2, TR2 = top_row
 
-    # ML, MR = mid_row
+    ML, MR = mid_row
 
-    # # BL2, BR2 = bot_row
+    # BL2, BR2 = bot_row
 
-    # print("TL2 =", TL2)
-    # print("TR2 =", TR2)
+    print("TL2 =", TL2)
+    print("TR2 =", TR2)
 
-    # print("ML  =", ML)
-    # print("MR  =", MR)
+    print("ML  =", ML)
+    print("MR  =", MR)
 
-    # shrink = -5
+    shrink = -5
 
-    # src_part2 = np.float32([
-    #     [TL2[0] + shrink, TL2[1] + shrink + 10],
-    #     [TR2[0] - shrink, TR2[1] + shrink],
-    #     [MR[0] - shrink, MR[1] - shrink],
-    #     [ML[0] + shrink, ML[1] - shrink ]
-    # ])
+    src_part2 = np.float32([
+        [TL2[0] + shrink, TL2[1] + shrink + 10],
+        [TR2[0] - shrink, TR2[1] + shrink],
+        [MR[0] - shrink, MR[1] - shrink],
+        [ML[0] + shrink, ML[1] - shrink ]
+    ])
 
-    # w_part2 = 800
-    # h_part2 = 220
+    w_part2 = 800
+    h_part2 = 220
 
-    # dst_part2 = np.float32([
-    #     [0,0],
-    #     [w_part2,0],
-    #     [w_part2,h_part2],
-    #     [0,h_part2]
-    # ])
+    dst_part2 = np.float32([
+        [0,0],
+        [w_part2,0],
+        [w_part2,h_part2],
+        [0,h_part2]
+    ])
 
-    # M2 = cv2.getPerspectiveTransform(src_part2,dst_part2)
+    M2 = cv2.getPerspectiveTransform(src_part2,dst_part2)
 
-    # M2_inv = np.linalg.inv(M2)
+    M2_inv = np.linalg.inv(M2)
 
-    # part2_roi = cv2.warpPerspective(warp,M2,(w_part2,h_part2))
+    part2_roi = cv2.warpPerspective(warp,M2,(w_part2,h_part2))
 
-    # cv2.line(warp,(TL2[0], TL2[1] ),(TR2[0], TR2[1]),(0,255,0),2)
+    cv2.line(warp,(TL2[0], TL2[1] ),(TR2[0], TR2[1]),(0,255,0),2)
 
-    # cv2.line(warp,(ML[0], ML[1]),(MR[0], MR[1]),(0,255,0),2)
+    cv2.line(warp,(ML[0], ML[1]),(MR[0], MR[1]),(0,255,0),2)
 
-    # # cv2.line(warp,(ML[0] + 0, ML[1] - 75),(MR[0] + 1000, MR[1] - 75),(0,0,255), 2)
+    # cv2.line(warp,(ML[0] + 0, ML[1] - 75),(MR[0] + 1000, MR[1] - 75),(0,0,255), 2)
 
-    # cv2.line(warp,(TL2[0], TL2[1]),(ML[0], ML[1]),(0,255,0),2)
+    cv2.line(warp,(TL2[0], TL2[1]),(ML[0], ML[1]),(0,255,0),2)
 
-    # cv2.line(warp,(TR2[0], TR2[1]),(MR[0], MR[1]),(0,255,0),2)
+    cv2.line(warp,(TR2[0], TR2[1]),(MR[0], MR[1]),(0,255,0),2)
 
-    # # Cắt ROI
-    # cv2.imshow("PART2 ROI", part2_roi)
+    # Cắt ROI
+    cv2.imshow("PART2 ROI", part2_roi)
 
-    # h2, w2 = part2_roi.shape[:2]
+    h2, w2 = part2_roi.shape[:2]
 
-    # left_crop = 15
-    # right_crop = 15
+    left_crop = 15
+    right_crop = 15
 
-    # part2_roi = part2_roi[
-    #     :,
-    #     left_crop:w2 - right_crop
-    # ]
+    part2_roi = part2_roi[
+        :,
+        left_crop:w2 - right_crop
+    ]
 
-    # h2, w2 = part2_roi.shape[:2]
+    h2, w2 = part2_roi.shape[:2]
 
-    # roi_part2_chia = w2 // 4
+    roi_part2_chia = w2 // 4
 
-    # all_part2_blocks = []
+    all_part2_blocks = []
 
-    # for i in range(4):
-    #     x1 = i * roi_part2_chia
-    #     if i == 3:
-    #         x2 = w2
-    #     else:
-    #         x2 = (i + 1) * roi_part2_chia
+    for i in range(4):
+        x1 = i * roi_part2_chia
+        if i == 3:
+            x2 = w2
+        else:
+            x2 = (i + 1) * roi_part2_chia
 
-    #     roi_block_par2 = part2_roi[:, x1:x2]
+        roi_block_par2 = part2_roi[:, x1:x2]
 
-    #     print(f"BLOCK {i+1}",roi_block_par2.shape)
+        print(f"BLOCK {i+1}",roi_block_par2.shape)
 
-    #     all_part2_blocks.append(roi_block_par2)
+        all_part2_blocks.append(roi_block_par2)
 
-    # all_answers_part2 = {}
+    all_answers_part2 = {}
 
-    # all_answers_part2_last = []
+    all_answers_part2_last = []
 
-    # for i, block_part2 in enumerate(all_part2_blocks):
+    for i, block_part2 in enumerate(all_part2_blocks):
 
-    #     start_question = i * 2 + 1
+        start_question = i * 2 + 1
 
-    #     answers_part2, debug_part2, selected_points_part2, correct_points_part2  = build_part2_grid(block_part2, answer_key_2 , start_question = start_question)
+        answers_part2, debug_part2, selected_points_part2, correct_points_part2  = build_part2_grid(block_part2, answer_key_2 , start_question = start_question)
 
-    #     all_answers_part2.update(answers_part2)
+        all_answers_part2.update(answers_part2)
 
-    #     offset_x = i * roi_part2_chia
+        offset_x = i * roi_part2_chia
 
-    #     for row, col, cx, cy, radius, is_correct  in selected_points_part2:
+        for row, col, cx, cy, radius, is_correct  in selected_points_part2:
 
-    #         px = cx + offset_x + left_crop
-    #         py = cy
+            px = cx + offset_x + left_crop
+            py = cy
 
-    #         pt = np.array([[[px, py]]], dtype=np.float32)
+            pt = np.array([[[px, py]]], dtype=np.float32)
 
-    #         real_pt = cv2.perspectiveTransform(pt, M2_inv)
+            real_pt = cv2.perspectiveTransform(pt, M2_inv)
 
-    #         wx = int(real_pt[0][0][0])
-    #         wy = int(real_pt[0][0][1])
+            wx = int(real_pt[0][0][0])
+            wy = int(real_pt[0][0][1])
 
-    #         if is_correct:
-    #             color = (0,255,0)
-    #         else:
-    #             color = (0,0,255)
+            if is_correct:
+                color = (0,255,0)
+            else:
+                color = (0,0,255)
 
-    #         cv2.circle(img_kq,(wx, wy),8,(0,255,255),2)
-    #         # cv2.circle(img_kq,(wx, wy),radius + 3,color,2)
-    #         # cv2.circle(img_kq,(wx, wy),radius + 6,(0,255,0),2)
+            cv2.circle(img_kq,(wx, wy),8,(0,255,255),2)
+            # cv2.circle(img_kq,(wx, wy),radius + 3,color,2)
+            # cv2.circle(img_kq,(wx, wy),radius + 6,(0,255,0),2)
 
             
 
-    #     for cx, cy, radius in correct_points_part2:
+        for cx, cy, radius in correct_points_part2:
 
-    #         px = cx + offset_x + left_crop
-    #         py = cy
+            px = cx + offset_x + left_crop
+            py = cy
 
-    #         pt = np.array([[[px, py]]], dtype=np.float32)
+            pt = np.array([[[px, py]]], dtype=np.float32)
 
-    #         real_pt = cv2.perspectiveTransform(pt, M2_inv)
+            real_pt = cv2.perspectiveTransform(pt, M2_inv)
 
-    #         wx = int(real_pt[0][0][0])
-    #         wy = int(real_pt[0][0][1])
+            wx = int(real_pt[0][0][0])
+            wy = int(real_pt[0][0][1])
 
-    #         # cv2.circle( img_kq,(wx, wy),radius + 3,(0,255,0),2)
+            # cv2.circle( img_kq,(wx, wy),radius + 3,(0,255,0),2)
             
-    #     cv2.imshow(f"PART2_GRID_{i+1}",debug_part2)
+        cv2.imshow(f"PART2_GRID_{i+1}",debug_part2)
 
-    # # Kết quả phần 2
-    # print("\n===== PART2 =====")
+    # Kết quả phần 2
+    print("\n===== PART2 =====")
 
-    # for q, data in all_answers_part2.items():
+    for q, data in all_answers_part2.items():
 
-    #     print(f"Câu {q}")
+        print(f"Câu {q}")
 
-    #     for y, ans in data.items():
-    #         print(f"   {y}) {ans}")
+        for y, ans in data.items():
+            print(f"   {y}) {ans}")
 
-    #         all_answers_part2_last.append(f"{q}{ans}")
+            all_answers_part2_last.append(f"{q}{ans}")
 
 
-    # # ===============================
-    # # PHẦN 3
-    # # ===============================
+    # ===============================
+    # PHẦN 3
+    # ===============================
 
-    # part3_pts = []
+    part3_pts = []
 
-    # for item in centers_1:
+    for item in centers_1:
 
-    #     cx,cy,x,y,w,h = item
+        cx,cy,x,y,w,h = item
 
-    #     if 950 < cy < 1800:
-    #         part3_pts.append((item))
-    #         cv2.circle(warp,(cx,cy),8,(0,255,255),6)
+        if 950 < cy < 1800:
+            part3_pts.append((item))
+            cv2.circle(warp,(cx,cy),8,(0,255,255),6)
         
-    # part3_pts = sorted(part3_pts, key=lambda p: (p[1], p[0]))
+    part3_pts = sorted(part3_pts, key=lambda p: (p[1], p[0]))
 
-    # print("PART3 PTS")
-    # for p in part3_pts:
-    #     print(p)
+    print("PART3 PTS")
+    for p in part3_pts:
+        print(p)
 
-    # ML = part2_pts[0]
-    # MR = part2_pts[1]
-
-
-    # if len(part3_pts) != 4:
-    #     raise Exception(
-    #         f"Part3 marker lỗi. Tìm thấy {len(part3_pts)} điểm"
-    #     )
-
-    # # top_row = sorted(part3_pts[:2], key=lambda p:p[0])
-
-    # mid_row = sorted(part3_pts[:2], key=lambda p:p[0])
-
-    # bottom_row = sorted(part3_pts[2:4], key=lambda p:p[0])
-
-    # BL2, BR2 = bottom_row
-
-    # ML, MR = mid_row
+    ML = part2_pts[0]
+    MR = part2_pts[1]
 
 
-    # print("ML  =", ML)
-    # print("MR  =", MR)
+    if len(part3_pts) != 4:
+        raise Exception(
+            f"Part3 marker lỗi. Tìm thấy {len(part3_pts)} điểm"
+        )
 
-    # print("TL2 =", BL2)
-    # print("TR2 =", BR2)
+    # top_row = sorted(part3_pts[:2], key=lambda p:p[0])
 
-    # shrink = 5
+    mid_row = sorted(part3_pts[:2], key=lambda p:p[0])
 
-    # src_part3 = np.float32([
-    #     [ML[0] + shrink, ML[1] + shrink ],
-    #     [MR[0] - shrink, MR[1] + shrink],
-    #     [BR2[0] - shrink, BR2[1] - shrink],
-    #     [BL2[0] + shrink, BL2[1] - shrink ]
-    # ])
+    bottom_row = sorted(part3_pts[2:4], key=lambda p:p[0])
 
-    # w_part3 = 900
-    # h_part3 = 420
+    BL2, BR2 = bottom_row
 
-    # dst_part3 = np.float32([
-    #     [0,0],
-    #     [w_part3,0],
-    #     [w_part3,h_part3],
-    #     [0,h_part3]
-    # ])
+    ML, MR = mid_row
 
-    # M3 = cv2.getPerspectiveTransform(src_part3,dst_part3)
 
-    # M3_inv = np.linalg.inv(M3)
+    print("ML  =", ML)
+    print("MR  =", MR)
 
-    # part3_roi = cv2.warpPerspective(warp,M3,(w_part3,h_part3))
+    print("TL2 =", BL2)
+    print("TR2 =", BR2)
 
-    # cv2.line(warp,(ML[0], ML[1] ),(MR[0], MR[1]),(0,255,0),2)
+    shrink = 5
 
-    # cv2.line(warp,(BL2[0], BL2[1]),(BR2[0], BR2[1]),(0,255,0),2)
+    src_part3 = np.float32([
+        [ML[0] + shrink, ML[1] + shrink ],
+        [MR[0] - shrink, MR[1] + shrink],
+        [BR2[0] - shrink, BR2[1] - shrink],
+        [BL2[0] + shrink, BL2[1] - shrink ]
+    ])
 
-    # cv2.line(warp,(ML[0], ML[1]),(BL2[0], BL2[1]),(0,255,0),2)
+    w_part3 = 900
+    h_part3 = 420
 
-    # cv2.line(warp,(MR[0], MR[1]),(BR2[0], BR2[1]),(0,255,0),2)
+    dst_part3 = np.float32([
+        [0,0],
+        [w_part3,0],
+        [w_part3,h_part3],
+        [0,h_part3]
+    ])
 
-    # cv2.imshow("PART3 ROI", part3_roi)
+    M3 = cv2.getPerspectiveTransform(src_part3,dst_part3)
 
-    # h3, w3 = part3_roi.shape[:2]
+    M3_inv = np.linalg.inv(M3)
 
-    # left_crop = 15
-    # right_crop = 15
+    part3_roi = cv2.warpPerspective(warp,M3,(w_part3,h_part3))
 
-    # part3_roi = part3_roi[
-    #     :,
-    #     left_crop:w3 - right_crop
-    # ]
+    cv2.line(warp,(ML[0], ML[1] ),(MR[0], MR[1]),(0,255,0),2)
 
-    # h3, w3 = part3_roi.shape[:2]
+    cv2.line(warp,(BL2[0], BL2[1]),(BR2[0], BR2[1]),(0,255,0),2)
 
-    # roi_part3_chia = w3 // 6
+    cv2.line(warp,(ML[0], ML[1]),(BL2[0], BL2[1]),(0,255,0),2)
 
-    # all_part3_blocks = []
+    cv2.line(warp,(MR[0], MR[1]),(BR2[0], BR2[1]),(0,255,0),2)
 
-    # for i in range(6):
+    cv2.imshow("PART3 ROI", part3_roi)
 
-    #     x1 = i * roi_part3_chia
+    h3, w3 = part3_roi.shape[:2]
 
-    #     if i == 5:
-    #         x2 = w3
-    #     else:
-    #         x2 = (i + 1) * roi_part3_chia
+    left_crop = 15
+    right_crop = 15
 
-    #     print(i, x1, x2)
+    part3_roi = part3_roi[
+        :,
+        left_crop:w3 - right_crop
+    ]
 
-    #     roi_block_part3 = part3_roi[:, x1:x2]
+    h3, w3 = part3_roi.shape[:2]
+
+    roi_part3_chia = w3 // 6
+
+    all_part3_blocks = []
+
+    for i in range(6):
+
+        x1 = i * roi_part3_chia
+
+        if i == 5:
+            x2 = w3
+        else:
+            x2 = (i + 1) * roi_part3_chia
+
+        print(i, x1, x2)
+
+        roi_block_part3 = part3_roi[:, x1:x2]
         
-    #     print("roi =", roi_block_part3.shape)
+        print("roi =", roi_block_part3.shape)
 
-    #     if roi_block_part3.size == 0:
-    #         print("ROI RONG")
-    #         continue
+        if roi_block_part3.size == 0:
+            print("ROI RONG")
+            continue
 
-    #     # cv2.imshow(f"BLOCK_{i+1}", roi_block_part3)
+        # cv2.imshow(f"BLOCK_{i+1}", roi_block_part3)
 
-    #     all_part3_blocks.append(roi_block_part3)
+        all_part3_blocks.append(roi_block_part3)
 
-    # all_ans_part3 = []
+    all_ans_part3 = []
 
-    # for i, block_part3 in enumerate(all_part3_blocks):
-    #     question_no = i + 1
+    for i, block_part3 in enumerate(all_part3_blocks):
+        question_no = i + 1
 
-    #     ans_part3, debug_part3, selected_points_part3, is_correct  = build_part3_grid(block_part3, answer_key_3, question_no)
+        ans_part3, debug_part3, selected_points_part3, is_correct  = build_part3_grid(block_part3, answer_key_3, question_no)
 
-    #     offset_x = i * roi_part3_chia + left_crop
+        offset_x = i * roi_part3_chia + left_crop
 
-    #     for row, col, cx, cy, radius in selected_points_part3:
+        for row, col, cx, cy, radius in selected_points_part3:
 
-    #         px = cx + offset_x
-    #         py = cy
+            px = cx + offset_x
+            py = cy
 
-    #         pt = np.array([[[px, py]]], dtype=np.float32)
+            pt = np.array([[[px, py]]], dtype=np.float32)
 
-    #         real_pt = cv2.perspectiveTransform(pt, M3_inv)
+            real_pt = cv2.perspectiveTransform(pt, M3_inv)
 
-    #         wx = int(real_pt[0][0][0])
-    #         wy = int(real_pt[0][0][1])
+            wx = int(real_pt[0][0][0])
+            wy = int(real_pt[0][0][1])
 
-    #         color = (0,255,0) if is_correct else (0,0,255)
+            color = (0,255,0) if is_correct else (0,0,255)
 
-    #         cv2.circle(img_kq,(wx, wy),radius + 4, color, 2)
-    #         # cv2.circle(img_kq,(wx, wy),8,(0,255,255),3)
+            cv2.circle(img_kq,(wx, wy),radius + 4, color, 2)
+            # cv2.circle(img_kq,(wx, wy),8,(0,255,255),3)
 
-    #     cv2.imshow(f"PART3_GRID_{i+1}",debug_part3)
+        cv2.imshow(f"PART3_GRID_{i+1}",debug_part3)
 
-    #     # Kết quả phần 3
-    #     print(f"\n===== PART3 BLOCK {i+1} =====")
-    #     print(ans_part3)
-    #     all_ans_part3.append(ans_part3)
+        # Kết quả phần 3
+        print(f"\n===== PART3 BLOCK {i+1} =====")
+        print(ans_part3)
+        all_ans_part3.append(ans_part3)
 
 
 

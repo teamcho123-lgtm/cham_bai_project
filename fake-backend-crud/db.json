@@ -357,9 +357,9 @@
       "classId": "class-005",
       "subjectId": "",
       "teacherId": "",
-      "templateId": "template-001",
+      "templateId": "template-004",
       "createdAt": "2026-07-31T19:29:57+07:00",
-      "updatedAt": "2026-07-31T19:29:57+07:00",
+      "updatedAt": "2026-08-07T20:03:28+07:00",
       "note": "",
       "status": "draft"
     },
@@ -381,9 +381,9 @@
       "classId": "class-004",
       "subjectId": "",
       "teacherId": "",
-      "templateId": "template-001",
+      "templateId": "template-000",
       "createdAt": "2026-07-31T22:26:46+07:00",
-      "updatedAt": "2026-07-31T22:26:46+07:00",
+      "updatedAt": "2026-08-07T20:51:00+07:00",
       "note": "",
       "status": "draft"
     },
@@ -925,21 +925,21 @@
     },
     {
       "id": "exam-004",
-      "templateId": "template-001",
+      "templateId": "template-000",
       "classId": "class-004",
       "name": "Test1",
       "description": "",
       "detector": {
-        "name": "app1",
+        "name": "app",
         "version": "1.0.0"
       },
       "questionCount": {
-        "mcq": 40,
-        "trueFalse": 8,
-        "shortAnswer": 6
+        "mcq": 10,
+        "trueFalse": 2,
+        "shortAnswer": 2
       },
       "answerKeys": {
-        "0287": {
+        "911": {
           "mcq": {
             "1": "A",
             "2": "B",
@@ -1055,7 +1055,7 @@
         }
       },
       "createdAt": "2026-07-31T22:26:46+07:00",
-      "updatedAt": "2026-07-31T22:30:36+07:00"
+      "updatedAt": "2026-08-07T20:58:38+07:00"
     },
     {
       "id": "exam-005",
@@ -1576,21 +1576,33 @@
         "version": "1.0.0"
       },
       "questionCount": {
-        "mcq": 1,
-        "trueFalse": 0,
-        "shortAnswer": 0
+        "mcq": 10,
+        "trueFalse": 2,
+        "shortAnswer": 2
       },
       "answerKeys": {
         "0018": {
           "mcq": {
             "1": "A"
           },
-          "trueFalse": {},
-          "shortAnswer": {}
+          "trueFalse": {
+            "1": {
+              "b": true,
+              "a": true
+            }
+          },
+          "shortAnswer": {
+            "1": {
+              "answer": "2"
+            },
+            "2": {
+              "answer": "3"
+            }
+          }
         }
       },
       "createdAt": "2026-08-03T15:26:10+07:00",
-      "updatedAt": "2026-08-03T15:26:33+07:00"
+      "updatedAt": "2026-08-05T02:50:31+07:00"
     }
   ],
   "submissions": [

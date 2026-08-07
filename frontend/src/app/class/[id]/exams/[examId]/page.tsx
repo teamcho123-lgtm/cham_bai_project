@@ -17,6 +17,8 @@ interface IAnswer {
 
 interface IAnswerSheetTemplate {
     answerKeys?: Record<string, IAnswer>;
+    templateId?: string;
+    classId?: string;
 }
 
 interface IPageProps {
@@ -46,10 +48,10 @@ const ExamCodePage = async ({ params }: IPageProps) => {
 
     const answerSheet: IAnswerSheetTemplate = await res.json();
     const answerKey = answerSheet.answerKeys?.[examId];
-    const templateId = Object.entries(answerSheet)[1][1];
-    const ClassId = Object.entries(answerSheet)[2][1];
+    const templateId = answerSheet.templateId;
+    const ClassId = answerSheet.classId;
 
-    console.log(ClassId)
+    // console.log(answerSheet.templateId?.[templateId]);
 
     const resClass = await fetch(`http://localhost:8000/classes/${ClassId}`,
         {
@@ -77,7 +79,7 @@ const ExamCodePage = async ({ params }: IPageProps) => {
         <ExamCodeDetail
             exam={answerKey}
             examCode={examId}
-            templateId={templateId}
+            templateId={templateId as string}
             targetClass={targetClass}
         />
     );

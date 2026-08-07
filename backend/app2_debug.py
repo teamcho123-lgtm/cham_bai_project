@@ -661,7 +661,7 @@ def build_part2_grid(block_img , answer_key_2, cols=2, start_question = 1):
     return answers, debug, selected_points, correct_points
 
 def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
-
+    
     selected_points = []
 
     correct_points = []

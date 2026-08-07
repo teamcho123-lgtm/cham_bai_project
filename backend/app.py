@@ -11,8 +11,6 @@ from function.dist import dist
 import cv2
 import numpy as np
 
-from models.bai_thi import BaiThi
-
 BASE_DIR = os.path.dirname( os.path.abspath(__file__))
 
 RESULT_FOLDER = os.path.join( BASE_DIR, "results")
@@ -338,7 +336,7 @@ def read_part1(part1_roi, rows, cols, answer_key_1, img=None, offset_x=0, offset
     MIN_FILL = 40
 
     for r in range(rows):
-
+    
         best_fill = 0
         best_col = -1
 
@@ -617,8 +615,8 @@ def build_part2_grid(block_img , answer_key_2, cols=4, start_question = 1):
             
     return answers, debug, selected_points, correct_points
 
-def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
-
+def build_part3_grid(block_img, answer_key_3, question_no, rows=12, cols=4):
+    
     selected_points = []
 
     correct_points = []
@@ -629,7 +627,7 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
 
     thresh = cv2.adaptiveThreshold(gray,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY_INV,31,10)
 
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
+    kernel = np.ones((3,3), np.uint8)
 
     thresh = cv2.morphologyEx(thresh,cv2.MORPH_CLOSE,kernel)
 
@@ -659,12 +657,12 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
 
         ratio = w / float(h)
         # cv2.putText(block_img,f"{int(peri)}",(x, y-3),cv2.FONT_HERSHEY_SIMPLEX,0.4,(0,0,255),1)
-        if 0.8 < ratio < 1.66 and circularity > 0.8:
+        if 0.8 < ratio < 1.4 and circularity > 0.8:
 
             cx = x + w//2
             cy = y + h//2
             
-            cv2.circle(debug, (int(cx), int(cy)), 4, (0,0,255), -1)
+            # cv2.circle(debug, (int(cx), int(cy)), 4, (0,0,255), -1)
 
             bubbles.append((cx,cy,w,h))
 
@@ -720,14 +718,13 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
     comma_pos = -1
 
     avg_w = int(np.median([w for _,_,w,_ in bubbles]))
+    cols_chars = [""] * len(cols_x)
 
     for r, cy in enumerate(rows_y):
 
         row_answer = []
-
         best_fill = 0
         best_col = -1
-
         temp_data = []
 
         for c, cx in enumerate(cols_x):
@@ -746,86 +743,108 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
 
             if filled > best_fill:
                 best_fill = filled
-                best_col = c
 
             area_circle = np.pi * radius * radius
 
             ratio_fill = filled / area_circle
 
             # tô > 35%
-            marked = ratio_fill > 0.6
+            marked = ratio_fill > 0.65
 
             row_answer.append(marked)
 
             if marked:
-                color = (0,255,0)
-                # dấu âm
+                # Hàng 0 chỉ có 3 ô: cột 0 là dấu âm, cột 1 và 2 là dấu phẩy.
+                # Cột 3 hàng 0 KHÔNG có ô nào trên phiếu - nếu bắt được ở đây
+                # thì là nhiễu/vết bẩn, bỏ qua (trước đây rơi vào nhánh else
+                # thành str(0-1) = "-1", nhét 2 ký tự vào 1 cột).
                 if r == 0:
-                    minus = True
-                # dấu phẩy
-                elif r == 1:
-                    comma_pos = c
-                # chữ số
+                    if c == 0:
+                        char = "-"
+                    elif c in (1, 2):
+                        char = ","
+                    else:
+                        char = None
                 else:
-                    digits[c] = str(r - 2)
+                    char = str(r - 1)
+
+                if char is None:
+                    color = (0,255,255)
+                    cv2.circle(debug,(cx,cy),radius,color,2)
+                    continue
+
+                color = (0,255,0)
+                cols_chars[c] = char
 
                 selected_points.append((r,c,cx,cy,radius))
             else:
-                color = (0,255,255)  
+                color = (0,255,255)
             
             cv2.circle(debug,(cx,cy),radius,color,2)
 
         result.append(row_answer)
 
-    answer_str = "".join(digits)
+    answer_str = "".join(cols_chars)
 
     if comma_pos != -1:
         answer_str = ( answer_str[:comma_pos]+ ","+ answer_str[comma_pos:])
     if minus:
         answer_str = "-" + answer_str
 
-    # ==========================
-    # Kiểm tra đáp án
-    # ==========================
+    # Dap an co 2 dinh dang:
+    #  - chuoi thuong:  "1,85"                     (file answers.json)
+    #  - dict tu web:   {"answer": "1,85"}         hoac co them acceptedAnswers
+    # Truoc day chi xu ly dang chuoi, gap dict thi str(dict) ra
+    # "{'answer': '1,85'}" -> so sanh luon sai VA khong ve duoc vong dap an dung.
+    correct_data = answer_key_3.get(str(question_no))
 
-    correct_answer = answer_key_3.get(str(question_no))
-    if correct_answer is None:
+    if isinstance(correct_data, dict):
+        accepted_answers = (correct_data.get("acceptedAnswers") or [correct_data.get("answer")])
+    elif correct_data is None:
+        accepted_answers = []
+    else:
+        accepted_answers = [correct_data]
+
+    accepted_answers = [v for v in accepted_answers if v is not None]
+
+    def normalize_short_answer(value):
+        return str(value).strip().replace(".", ",")
+
+    if not accepted_answers:
         print(f"Không có đáp án câu {question_no}")
         is_correct = False
+        correct_answer = None
     else:
-        is_correct = (answer_str == str(correct_answer))
+        accepted_values = {normalize_short_answer(v) for v in accepted_answers}
+        is_correct = normalize_short_answer(answer_str) in accepted_values
+        # Dung dap an dau tien de ve vong tron goi y khi hoc sinh lam sai
+        correct_answer = accepted_answers[0]
 
-    if not is_correct:
-
+    if not is_correct and correct_answer is not None:
         temp = str(correct_answer)
+        radius = int(avg_w * 0.45)
 
-        radius = int(avg_w*0.4)
-
-        # dấu âm
-        if temp.startswith("-"):
-            correct_points.append((cols_x[0],rows_y[0],radius))
-            temp = temp[1:]
-
-        # dấu phẩy
-        comma_index = -1
-
-        if "," in temp:
-            comma_index = temp.index(",")
-            temp = temp.replace(",","")
-            correct_points.append((cols_x[comma_index], rows_y[1], radius))
-
-
-        # các chữ số
-        for c,digit in enumerate(temp):
-            if c>=len(cols_x):
+        # Duyệt qua từng ký tự trong chuỗi gốc, mỗi ký tự map đúng vào 1 cột
+        for c, char in enumerate(temp):
+            # Giới hạn số cột tối đa là 4 (hoặc độ dài của mảng cols_x)
+            if c >= len(cols_x) or c >= 4:
                 break
-            # bỏ qua ký tự không phải số
-            if not digit.isdigit():
-                continue
-            row = int(digit) + 2
-            if row >= len(rows_y):
-                continue
-            correct_points.append((cols_x[c],rows_y[row],radius))
+                
+            row_idx = -1
+            
+            # Ánh xạ ký tự thành index của hàng (row).
+            # Phiếu này có 11 hàng: hàng 0 chứa CẢ dấu âm lẫn dấu phẩy
+            # (phân biệt theo cột), hàng 1..10 là chữ số 0..9.
+            if char == "-":
+                row_idx = 0  # Dấu âm ở hàng 0
+            elif char == ",":
+                row_idx = 0  # Dấu phẩy cũng ở hàng 0, khác cột
+            elif char.isdigit():
+                row_idx = int(char) + 1  # Số 0 ở hàng 1 -> số 9 ở hàng 10
+                
+            # Nếu ký tự hợp lệ và không vượt quá số lượng hàng thực tế
+            if row_idx != -1 and row_idx < len(rows_y):
+                correct_points.append((cols_x[c], rows_y[row_idx], radius))
             
 
     return answer_str, debug, selected_points, is_correct, correct_points

@@ -101,7 +101,6 @@ const RenderUploadImage = ({ templateId, answerKeys, targetClass }: IProps) => {
     ) => {
         setImageRows((previousRows) =>
 
-
             previousRows.map((row, index) => {
 
                 const gradeResult = gradeResults.find((item) => item.index === index);
@@ -199,9 +198,7 @@ const RenderUploadImage = ({ templateId, answerKeys, targetClass }: IProps) => {
 
     const handleRemoveAllImages = () => {
         imageRows.forEach((row) => {
-            URL.revokeObjectURL(
-                row.previewUrl
-            );
+            URL.revokeObjectURL(row.previewUrl);
         });
 
         setImageRows([]);

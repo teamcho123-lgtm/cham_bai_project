@@ -18,7 +18,6 @@ from function.wrinkle_detector import (
 # pip install opencv-python
 # pip install numpy
 
-from models.bai_thi import BaiThi
 
 BASE_DIR = os.path.dirname( os.path.abspath(__file__))
 

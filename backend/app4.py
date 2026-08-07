@@ -652,8 +652,8 @@ def build_part2_grid(block_img , answer_key_2, cols=4, start_question = 1):
             
     return answers, debug, selected_points, correct_points
 
-def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
-
+def build_part3_grid(block_img, answer_key_3, question_no, rows=12, cols=4):
+    
     selected_points = []
 
     correct_points = []
@@ -755,14 +755,13 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
     comma_pos = -1
 
     avg_w = int(np.median([w for _,_,w,_ in bubbles]))
+    cols_chars = [""] * len(cols_x)
 
     for r, cy in enumerate(rows_y):
 
         row_answer = []
-
         best_fill = 0
         best_col = -1
-
         temp_data = []
 
         for c, cx in enumerate(cols_x):
@@ -794,15 +793,12 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
 
             if marked:
                 color = (0,255,0)
-                # dấu âm
                 if r == 0:
-                    minus = True
-                # dấu phẩy
+                    cols_chars[c] = "-"
                 elif r == 1:
-                    comma_pos = c
-                # chữ số
+                    cols_chars[c] = ","
                 else:
-                    digits[c] = str(r - 2)
+                    cols_chars[c] = str(r - 2)
 
                 selected_points.append((r,c,cx,cy,radius))
             else:
@@ -812,16 +808,12 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
 
         result.append(row_answer)
 
-    answer_str = "".join(digits)
+    answer_str = "".join(cols_chars)
 
     if comma_pos != -1:
         answer_str = ( answer_str[:comma_pos]+ ","+ answer_str[comma_pos:])
     if minus:
         answer_str = "-" + answer_str
-
-    # ==========================
-    # Kiểm tra đáp án
-    # ==========================
 
     correct_answer = answer_key_3.get(str(question_no))
     if correct_answer is None:
@@ -831,36 +823,28 @@ def build_part3_grid(block_img, answer_key_3, question_no, rows=11, cols=4):
         is_correct = (answer_str == str(correct_answer))
 
     if not is_correct:
-
         temp = str(correct_answer)
+        radius = int(avg_w * 0.45)
 
-        radius = int(avg_w*0.45)
-
-        # dấu âm
-        if temp.startswith("-"):
-            correct_points.append((cols_x[0],rows_y[0],radius))
-            temp = temp[1:]
-
-        # dấu phẩy
-        comma_index = -1
-
-        if "," in temp:
-            comma_index = temp.index(",")
-            temp = temp.replace(",","")
-            correct_points.append((cols_x[comma_index], rows_y[1], radius))
-
-
-        # các chữ số
-        for c,digit in enumerate(temp):
-            if c>=len(cols_x):
+        # Duyệt qua từng ký tự trong chuỗi gốc, mỗi ký tự map đúng vào 1 cột
+        for c, char in enumerate(temp):
+            # Giới hạn số cột tối đa là 4 (hoặc độ dài của mảng cols_x)
+            if c >= len(cols_x) or c >= 4:
                 break
-            # bỏ qua ký tự không phải số
-            if not digit.isdigit():
-                continue
-            row = int(digit) + 2
-            if row >= len(rows_y):
-                continue
-            correct_points.append((cols_x[c],rows_y[row],radius))
+                
+            row_idx = -1
+            
+            # Ánh xạ ký tự thành index của hàng (row)
+            if char == "-":
+                row_idx = 0  # Dấu âm ở hàng đầu tiên
+            elif char == ",":
+                row_idx = 1  # Dấu phẩy ở hàng thứ hai
+            elif char.isdigit():
+                row_idx = int(char) + 2  # Các số từ 0-9 ở các hàng tiếp theo
+                
+            # Nếu ký tự hợp lệ và không vượt quá số lượng hàng thực tế
+            if row_idx != -1 and row_idx < len(rows_y):
+                correct_points.append((cols_x[c], rows_y[row_idx], radius))
             
 
     return answer_str, debug, selected_points, is_correct, correct_points
@@ -1249,7 +1233,7 @@ def detect(image_path, answer_keys=None, debug_mode=False):
 
                 cv2.circle(warp,(wx,wy), radius+1,(0,255,0),2)
             
-        cv2.putText(warp,f"Q{question_no}: {answer_part3}",(x+ 40, y+10),cv2.FONT_HERSHEY_SIMPLEX,0.6,color,2)
+        cv2.putText(warp,f"Q{question_no}: {answer_part3}",(x, y-13),cv2.FONT_HERSHEY_SIMPLEX,0.6,color,2)
     # =========================
     # TÍNH KẾT QUẢ
     # =========================

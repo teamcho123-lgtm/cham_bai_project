@@ -4,3 +4,11 @@ python-multipart
 opencv-python
 numpy
 pydantic
+ultralytics
+
+# torch/torchvision GPU (CUDA) build is not on PyPI for Windows.
+# Install separately before the line above:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+# (plain `pip install ultralytics` pulls CPU-only torch and silently
+# overwrites a GPU install — always reinstall torch/torchvision from the
+# cu128 index, with --force-reinstall, after installing ultralytics)

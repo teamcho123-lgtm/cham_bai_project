@@ -18,6 +18,7 @@ import json
 import os
 import uuid
 import traceback
+import shutil
 
 
 print("START MAIN")
@@ -281,16 +282,17 @@ async def cham_bai(
         )
 
     # 4. Tạo thư mục lưu ảnh
-    os.makedirs(
-        UPLOAD_FOLDER,
-        exist_ok=True,
-    )
+    TEMP_FOLDER = os.path.join(BASE_DIR, "temp")
+    UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
+    
+    os.makedirs(TEMP_FOLDER, exist_ok=True)
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
     results = []
 
     # 5. Xử lý từng ảnh
     for index, upload_file in enumerate(files):
-
+    
         original_name = (
             upload_file.filename
             or f"image-{index}.jpg"
@@ -335,31 +337,56 @@ async def cham_bai(
             f"{safe_file_name}"
         )
 
-        file_path = os.path.join(
+        temp_file_path = os.path.join(
+            TEMP_FOLDER,
+            stored_file_name,
+        )
+
+        upload_file_path = os.path.join(
             UPLOAD_FOLDER,
             stored_file_name,
         )
 
         try:
-
             # 6. Đọc file ảnh
             content = await upload_file.read()
 
-            # 7. Lưu ảnh tạm vào uploads
+            # 7. Chỉ lưu tạm vào TEMP trước
             with open(
-                file_path,
+                temp_file_path,
                 "wb",
             ) as saved_file:
-
                 saved_file.write(content)
 
             print(
-                "Đã lưu ảnh tại:",
-                file_path,
+                "Đã lưu ảnh tạm tại:",
+                temp_file_path,
             )
 
-            # 8. Gọi app chấm bài
-            detect_result = detector_module.detect(file_path,answer_keys_data)
+            # 8. Gọi app chấm bài bằng ảnh tạm
+            detect_result = detector_module.detect(
+                temp_file_path,
+                answer_keys_data
+            )
+
+            # ==============================
+            # CHẤM THÀNH CÔNG
+            # MỚI CHUYỂN ẢNH VÀO uploads
+            # ==============================
+
+            shutil.move(
+                temp_file_path,
+                upload_file_path
+            )
+
+            print(
+                "Ảnh chấm thành công, đã lưu tại:",
+                upload_file_path,
+            )
+
+            # ==============================
+            # ẢNH KẾT QUẢ
+            # ==============================
 
             result_image_name = detect_result.get(
                 "resultImageName"
@@ -388,9 +415,36 @@ async def cham_bai(
 
         except Exception as error:
 
-            print( "Lỗi xử lý ảnh:",str(error),)
+            print(
+                "Lỗi xử lý ảnh:",
+                str(error),
+            )
 
             traceback.print_exc()
+
+            # ==============================
+            # CHẤM LỖI
+            # XÓA ẢNH TẠM
+            # ==============================
+
+            if os.path.exists(
+                temp_file_path
+            ):
+                try:
+                    os.remove(
+                        temp_file_path
+                    )
+
+                    print(
+                        "Đã xóa ảnh chấm lỗi:",
+                        temp_file_path,
+                    )
+
+                except Exception as delete_error:
+                    print(
+                        "Không xóa được ảnh tạm:",
+                        str(delete_error),
+                    )
 
             results.append({
                 "index": index,
@@ -400,7 +454,6 @@ async def cham_bai(
             })
 
         finally:
-
             await upload_file.close()
 
     # 10. Trả toàn bộ kết quả về frontend

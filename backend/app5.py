@@ -13,7 +13,6 @@ from function.find_marker_in_roi import find_marker_in_roi
 # pip install opencv-python
 # pip install numpy
 
-from models.bai_thi import BaiThi
 
 # 0.HÀM CHUẨN BỊ
 import cv2

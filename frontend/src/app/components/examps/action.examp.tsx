@@ -198,6 +198,7 @@ const showActionListExamps = (props: IProps) => {
     }
 
     const handleSelectModal = (temp: IExamModel) => {
+        console.log("temp", temp)
         setExampModelSelect(null)
         setExampModelSelect(temp)
         setShowTemplates(false)
@@ -264,7 +265,7 @@ const showActionListExamps = (props: IProps) => {
         const answerSheetId = isUpdate ? listDefaultExams.id : examId;
 
         const dataNewLE = {
-            id: newExamId,
+            id: examId,
             name: examName,
             classId: classroom.id,
             subjectId: subjectId,
@@ -302,10 +303,12 @@ const showActionListExamps = (props: IProps) => {
         };
 
         if (listDefaultExams === null) {
+
             const res = await handleCreateExamInClassAction(dataNewLE, answerSheetData);
             res?.success == true ? toast.success("Thêm đợt thi thành công :)") : toast.error("Thêm đợt thi thất bại :(")
         } else {
-            const res = await handleUpdateExamInClassAction(listDefaultExams.id, dataNewLE);
+            console.log("exampModelSelect", exampModelSelect)
+            const res = await handleUpdateExamInClassAction(listDefaultExams.id, dataNewLE, answerSheetData);
             res?.success == true ? toast.success("Update đợt thi thành công :)") : toast.error("Update đợt thi thất bại :(")
         }
 
