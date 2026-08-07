@@ -71,11 +71,11 @@ UPLOAD_FOLDER = "uploads"
 
 # templateId dùng app nào để chấm
 TEMPLATE_DETECTOR_MAP = {
-    "template-000": "app",
-    "template-001": "app1",
-    "template-002": "app2",
-    "template-003": "app3",
-    "template-004": "app4",
+    "template-000": "detectors.app",
+    "template-001": "detectors.app1",
+    "template-002": "detectors.app2",
+    "template-003": "detectors.app3",
+    "template-004": "detectors.app4",
 }
 
 

@@ -12,7 +12,9 @@ import cv2
 import numpy as np
 import math
 
-BASE_DIR = os.path.dirname( os.path.abspath(__file__))
+# Lui len mot cap: file nay nam trong detectors/ nhung anh ket qua
+# phai ghi vao backend/results/ vi main.py chi phuc vu thu muc do.
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 RESULT_FOLDER = os.path.join( BASE_DIR, "results")
 
