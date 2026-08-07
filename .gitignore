@@ -9,6 +9,7 @@ npm-debug.log*
 out/
 build/
 .vercel
+*.tsbuildinfo
 
 # ===== Python =====
 __pycache__/
@@ -19,17 +20,34 @@ venv/
 env/
 *.egg-info/
 .pytest_cache/
+.mypy_cache/
 
 # ===== Dữ liệu sinh ra khi chạy =====
 # Ảnh giáo viên tải lên và ảnh kết quả chấm.
 # Đây là dữ liệu runtime, không phải mã nguồn.
 backend/uploads/
 backend/results/
+backend/temp/
 backend/debug_omr/
 backend/warp_result.png
 
+# Ảnh cắt ra khi tinh chỉnh ngưỡng đọc ô tròn.
+backend/bubble_patches/
+
 # Lưu ý: backend/data/ được giữ lại trong git
 # để người khác clone về vẫn có ảnh mẫu chạy thử.
+
+# ===== Machine learning =====
+# Dataset gán nhãn và kết quả train: nặng vài GB,
+# sinh lại được, không đưa vào git.
+backend/dataset/
+backend/runs/
+
+# Trọng số model. yolov8n.pt / yolo26n.pt là bản
+# pretrained do ultralytics tự tải về khi cần.
+# Riêng best.pt là model đã train của dự án nên giữ lại.
+*.pt
+!backend/best.pt
 
 # ===== IDE / hệ điều hành =====
 .vscode/
@@ -42,4 +60,3 @@ Desktop.ini
 .env
 .env.local
 .env*.local
-backend/temp/
