@@ -1,0 +1,81 @@
+# ===== Node =====
+node_modules/
+.npm
+*.log
+npm-debug.log*
+
+# ===== Next.js =====
+.next/
+out/
+build/
+.vercel
+*.tsbuildinfo
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# ===== Dữ liệu sinh ra khi chạy =====
+# Ảnh giáo viên tải lên và ảnh kết quả chấm.
+# Đây là dữ liệu runtime, không phải mã nguồn.
+backend/uploads/
+backend/results/
+backend/temp/
+backend/capture_sessions/
+backend/debug_omr/
+backend/warp_result.png
+frontend/capture-upload.log
+frontend/.camera-tunnel-url
+.tools/
+
+# Báo cáo đánh giá OMR sinh từ dữ liệu runtime cục bộ.
+backend/evaluation/manifest.csv
+backend/evaluation/review.html
+backend/evaluation/reviewed_manifest.csv
+backend/evaluation/summary.md
+backend/evaluation/summary.json
+
+# Ảnh cắt ra khi tinh chỉnh ngưỡng đọc ô tròn.
+backend/bubble_patches/
+
+# Ảnh mẫu/debug cục bộ có dung lượng lớn, không phải mã nguồn runtime.
+backend/data/
+camera-check/*.jpg
+
+# ===== Machine learning =====
+# Toàn bộ dữ liệu, mã train, log và cache machine learning.
+# Các file này không được dùng trong luồng OMR OpenCV hiện tại.
+backend/dataset/
+backend/runs/
+backend/tools/train.py
+wandb/
+mlruns/
+.ultralytics/
+
+# Trọng số/model xuất ra từ các framework ML.
+*.pt
+*.pth
+*.onnx
+*.engine
+*.ckpt
+*.h5
+*.tflite
+
+# ===== IDE / hệ điều hành =====
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ===== Biến môi trường =====
+.env
+.env.local
+.env*.local
