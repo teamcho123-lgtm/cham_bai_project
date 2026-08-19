@@ -79,3 +79,8 @@ Desktop.ini
 .env
 .env.local
 .env*.local
+
+# ===== File sinh tự động / dữ liệu huấn luyện =====
+.codex-docs/
+backend/train/
+backend/models/
